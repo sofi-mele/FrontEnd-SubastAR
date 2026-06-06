@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "SubastAR",
+    "slug": "subastar",
+    "scheme": "subastar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.subastar.app"
+    },
+    "android": {
+      "package": "com.subastar.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-community/datetimepicker"
+    ],
+    "router": {
+      "root": "src/app"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
