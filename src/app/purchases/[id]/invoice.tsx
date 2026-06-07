@@ -1,1 +1,1 @@
-export { InvoiceScreen as default } from '@/features/account/screens';
+export { InvoiceScreen as default } from '@/features/account/screens/invoice';

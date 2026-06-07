@@ -1,1 +1,1 @@
-export { ConfirmBidScreen as default } from '@/features/auctions/screens';
+export { ConfirmBidScreen as default } from '@/features/auctions/screens/confirm-bid';

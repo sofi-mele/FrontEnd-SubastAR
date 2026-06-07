@@ -1,1 +1,1 @@
-export { LiveAuctionScreen as default } from '@/features/auctions/screens';
+export { LiveAuctionScreen as default } from '@/features/auctions/screens/live-auction';

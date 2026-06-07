@@ -1,1 +1,1 @@
-export { HomeScreen as default } from '@/features/auctions/screens';
+export { HomeScreen as default } from '@/features/auctions/screens/home';

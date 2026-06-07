@@ -1,1 +1,1 @@
-export { PurchasesScreen as default } from '@/features/account/screens';
+export { PurchasesScreen as default } from '@/features/account/screens/purchases';

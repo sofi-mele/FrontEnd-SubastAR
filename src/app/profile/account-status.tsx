@@ -1,1 +1,1 @@
-export { AccountStatusScreen as default } from '@/features/account/screens';
+export { AccountStatusScreen as default } from '@/features/account/screens/account-status';

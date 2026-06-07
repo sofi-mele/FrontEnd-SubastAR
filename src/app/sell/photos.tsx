@@ -1,1 +1,1 @@
-export { SellPhotosScreen as default } from '@/features/selling/screens';
+export { SellPhotosScreen as default } from '@/features/selling/screens/photos';

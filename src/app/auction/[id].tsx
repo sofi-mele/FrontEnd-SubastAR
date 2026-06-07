@@ -1,1 +1,1 @@
-export { AuctionDetailScreen as default } from '@/features/auctions/screens';
+export { AuctionDetailScreen as default } from '@/features/auctions/screens/auction-detail';

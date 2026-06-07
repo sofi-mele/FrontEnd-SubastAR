@@ -1,1 +1,1 @@
-export { ExtendPolicyScreen as default } from '@/features/account/screens';
+export { ExtendPolicyScreen as default } from '@/features/account/screens/extend-policy';

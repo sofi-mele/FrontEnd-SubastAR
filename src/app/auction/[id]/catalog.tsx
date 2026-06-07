@@ -1,1 +1,1 @@
-export { CatalogScreen as default } from '@/features/auctions/screens';
+export { CatalogScreen as default } from '@/features/auctions/screens/catalog';

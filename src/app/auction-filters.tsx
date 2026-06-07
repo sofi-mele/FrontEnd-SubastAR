@@ -1,1 +1,1 @@
-export { AuctionFiltersScreen as default } from '@/features/auctions/screens';
+export { AuctionFiltersScreen as default } from '@/features/auctions/screens/filters';

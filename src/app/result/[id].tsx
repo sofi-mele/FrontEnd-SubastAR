@@ -1,1 +1,1 @@
-export { ResultScreen as default } from '@/features/auctions/screens';
+export { ResultScreen as default } from '@/features/auctions/screens/result';

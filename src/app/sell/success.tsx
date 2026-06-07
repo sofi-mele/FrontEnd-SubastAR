@@ -1,1 +1,1 @@
-export { SellSuccessScreen as default } from '@/features/selling/screens';
+export { SellSuccessScreen as default } from '@/features/selling/screens/success';

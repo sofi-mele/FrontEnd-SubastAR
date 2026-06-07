@@ -1,1 +1,1 @@
-export { AssetsScreen as default } from '@/features/account/screens';
+export { AssetsScreen as default } from '@/features/account/screens/assets';

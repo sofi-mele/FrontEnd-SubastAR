@@ -1,1 +1,1 @@
-export { WelcomeScreen as default } from '@/features/auth/screens';
+export { WelcomeScreen as default } from '@/features/auth/screens/welcome';

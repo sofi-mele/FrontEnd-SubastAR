@@ -1,1 +1,1 @@
-export { PoliciesScreen as default } from '@/features/account/screens';
+export { PoliciesScreen as default } from '@/features/account/screens/policies';

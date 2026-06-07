@@ -1,1 +1,1 @@
-export { ParticipationHistoryScreen as default } from '@/features/account/screens';
+export { ParticipationHistoryScreen as default } from '@/features/account/screens/history';

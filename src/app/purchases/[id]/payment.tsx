@@ -1,1 +1,1 @@
-export { PurchasePaymentScreen as default } from '@/features/account/screens';
+export { PurchasePaymentScreen as default } from '@/features/account/screens/purchase-payment';
