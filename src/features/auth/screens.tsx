@@ -418,7 +418,7 @@ export function RegisterScreen() {
                       key={c.id}
                       style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}
                       onPress={() => {
-                        field.onChange(c.id);
+                        field.onChange(c.name);
                         setCountrySearch(c.name);
                         setShowCountryDropdown(false);
                       }}
