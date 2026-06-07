@@ -10,7 +10,7 @@ import { ActionRow, Badge, Body, Button, Card, ConfirmationModal, Divider, Empty
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { useSession } from '@/providers/app-provider';
-import { assetService, authService, chatService, insuranceService, paymentService, profileService, purchaseService } from '@/services/api';
+import { assetService, authService, chatService, collectionAccountService, insuranceService, paymentService, profileService, purchaseService } from '@/services/api';
 import { errorToUserMessage } from '@/services/errors';
 import { explainFileAccess, permissionDeniedMessage, requestMediaLibraryPermission } from '@/services/permissions';
 import type { Country, FileUpload, PaymentMethodKind } from '@/types/domain';
@@ -329,20 +329,24 @@ export function AssetsScreen() {
     <Screen>
       <Header title="Mis bienes" onBack={back} />
       <SectionHeader title="Estado de solicitud" subtitle="Filtrá tus bienes por su revisión actual" />
-      <FilterTabs options={['Todos', 'Pendiente', 'Aceptado', 'Rechazado'] as const} value={status} onChange={setStatus} />
-      {isLoading ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : data?.length ? data.map((asset) => (
-        <Card key={asset.id} style={styles.itemCard}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderCopy}>
-              <Text style={styles.cardTitle}>{asset.title}</Text>
-              <Body muted>{asset.category}</Body>
+      <FilterTabs options={['Todos', 'Pendiente', 'En inspección', 'Aceptado', 'Rechazado'] as const} value={status} onChange={setStatus} />
+      {isLoading ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : data?.length ? data.map((asset) => {
+        const pendingDecision = asset.status === 'Aceptado' && !asset.conditionsAccepted;
+        return (
+          <Card key={asset.id} style={styles.itemCard}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderCopy}>
+                <Text style={styles.cardTitle}>{asset.title}</Text>
+              </View>
+              <Badge label={asset.status} tone={asset.status === 'Aceptado' ? 'green' : asset.status === 'Rechazado' ? 'red' : asset.status === 'En inspección' ? 'purple' : 'yellow'} />
             </View>
-            <Badge label={asset.status} tone={asset.status === 'Aceptado' ? 'green' : asset.status === 'Rechazado' ? 'red' : 'yellow'} />
-          </View>
-          <Body muted>{asset.detail}</Body>
-          <Button label="Ver detalle" variant="secondary" onPress={() => router.push({ pathname: '/profile/assets/[id]', params: { id: asset.id } })} />
-        </Card>
-      )) : <EmptyState title="Sin bienes en este estado" message="Tus solicitudes aparecerán acá al ser registradas." />}
+            {pendingDecision ? (
+              <StatusCard icon="alert-circle-outline" title="Requiere tu decisión" message="La empresa aceptó el bien. Revisá las condiciones y decidí si participás." tone="yellow" />
+            ) : null}
+            <Button label={pendingDecision ? 'Revisar condiciones' : 'Ver detalle'} variant={pendingDecision ? 'primary' : 'secondary'} onPress={() => router.push({ pathname: '/profile/assets/[id]', params: { id: asset.id } })} />
+          </Card>
+        );
+      }) : <EmptyState title="Sin bienes en este estado" message="Tus solicitudes aparecerán acá al ser registradas." />}
       <Button label="Subir un producto" onPress={() => router.push('/sell')} />
     </Screen>
   );
@@ -864,6 +868,97 @@ export function EditProfileScreen() {
   );
 }
 
+function validateBank(value: string) {
+  if (!value.trim()) return 'Ingresá el nombre del banco';
+  if (value.trim().length < 3) return 'Nombre demasiado corto';
+  return '';
+}
+
+function validateCbu(value: string) {
+  if (!value.trim()) return 'Ingresá el CBU, IBAN o número de cuenta';
+  if (/^\d+$/.test(value) && value.length !== 22) return 'El CBU argentino debe tener 22 dígitos';
+  if (value.trim().length < 8) return 'Número de cuenta demasiado corto';
+  return '';
+}
+
+function validateAmount(value: string) {
+  if (!value.trim()) return 'Ingresá un monto';
+  if (isNaN(Number(value)) || Number(value) <= 0) return 'El monto debe ser mayor a 0';
+  return '';
+}
+
+function validateChequeNumber(value: string) {
+  if (!value.trim()) return 'Ingresá el número de cheque';
+  if (!/^\d+$/.test(value)) return 'Solo se permiten números';
+  if (value.length < 4) return 'Número demasiado corto';
+  return '';
+}
+
+function luhnValid(raw: string) {
+  const digits = raw.replace(/\s/g, '');
+  if (!/^\d{13,19}$/.test(digits)) return false;
+  let sum = 0, alt = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let n = parseInt(digits[i], 10);
+    if (alt) { n *= 2; if (n > 9) n -= 9; }
+    sum += n;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+}
+
+function validateCardNumber(value: string) {
+  const digits = value.replace(/\s/g, '');
+  if (!digits) return 'Ingresá el número de tarjeta';
+  if (!/^\d+$/.test(digits)) return 'Solo se permiten números';
+  if (digits.length < 13 || digits.length > 19) return 'El número debe tener entre 13 y 19 dígitos';
+  if (!luhnValid(digits)) return 'Número de tarjeta inválido';
+  return '';
+}
+
+function validateExpiry(value: string) {
+  if (!value) return 'Ingresá el vencimiento';
+  if (!/^\d{2}\/\d{2}$/.test(value)) return 'Formato inválido (MM/AA)';
+  const [mm, yy] = value.split('/').map(Number);
+  if (mm < 1 || mm > 12) return 'Mes inválido';
+  const now = new Date();
+  const expDate = new Date(2000 + yy, mm, 1);
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (expDate <= thisMonth) return 'La tarjeta está vencida';
+  return '';
+}
+
+function validateCvv(value: string) {
+  if (!value) return 'Ingresá el código de seguridad';
+  if (!/^\d{3,4}$/.test(value)) return 'Debe tener 3 o 4 dígitos';
+  return '';
+}
+
+function validateHolder(value: string) {
+  if (!value.trim()) return 'Ingresá el nombre del titular';
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-]+$/.test(value)) return 'Solo se permiten letras';
+  if (value.trim().split(/\s+/).length < 2) return 'Ingresá nombre y apellido';
+  return '';
+}
+
+function validateDni(value: string) {
+  if (!value) return 'Ingresá el DNI del titular';
+  if (!/^\d{7,8}$/.test(value)) return 'El DNI debe tener 7 u 8 dígitos';
+  return '';
+}
+
+function formatCardNumber(raw: string) {
+  const digits = raw.replace(/\D/g, '').slice(0, 19);
+  return digits.replace(/(.{4})/g, '$1 ').trim();
+}
+
+function formatExpiry(raw: string, prev: string) {
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  if (raw.length < prev.length && raw.endsWith('/')) return digits.slice(0, 1);
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
 export function PaymentAddScreen() {
   const router = useRouter();
   const back = useSafeBack();
@@ -880,10 +975,45 @@ export function PaymentAddScreen() {
   const [dni, setDni] = useState('');
   const [photo, setPhoto] = useState<FileUpload>();
   const [pickerError, setPickerError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  function setError(field: string, msg: string) {
+    setErrors(prev => ({ ...prev, [field]: msg }));
+  }
+
+  function handleCardNumber(raw: string) {
+    const formatted = formatCardNumber(raw);
+    setIdentifier(formatted);
+    if (errors.identifier) setError('identifier', validateCardNumber(formatted));
+  }
+
+  function handleExpiry(raw: string) {
+    const formatted = formatExpiry(raw, expiry);
+    setExpiry(formatted);
+    if (errors.expiry) setError('expiry', validateExpiry(formatted));
+  }
+
+  function handleCvv(raw: string) {
+    const digits = raw.replace(/\D/g, '').slice(0, 4);
+    setSecurity(digits);
+    if (errors.security) setError('security', validateCvv(digits));
+  }
+
+  function handleHolder(raw: string) {
+    setHolder(raw);
+    if (errors.holder) setError('holder', validateHolder(raw));
+  }
+
+  function handleDni(raw: string) {
+    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    setDni(digits);
+    if (errors.dni) setError('dni', validateDni(digits));
+  }
+
   const save = useMutation({
     mutationFn: () => paymentService.create({
       type: kind, bankName: bank, bankCountry: country, cbuIban: kind === 'cuenta_bancaria' ? identifier : undefined,
-      reservedFunds: amount, cardNumber: kind === 'tarjeta_credito' ? identifier : undefined, holder, expiry,
+      reservedFunds: amount, cardNumber: kind === 'tarjeta_credito' ? identifier.replace(/\s/g, '') : undefined, holder, expiry,
       securityCode: security, holderDni: dni, issuerBank: bank, certifiedAmount: amount,
       chequeNumber: kind === 'cheque_certificado' ? identifier : undefined, chequePhoto: photo,
     }),
@@ -914,11 +1044,10 @@ export function PaymentAddScreen() {
   }
   const label = kind === 'tarjeta_credito' ? 'Tarjeta de crédito' : kind === 'cuenta_bancaria' ? 'Cuenta bancaria' : 'Cheque certificado';
   const submitLabel = kind === 'cuenta_bancaria' ? 'Agregar cuenta' : kind === 'tarjeta_credito' ? 'Agregar tarjeta' : 'Agregar cheque';
-  const canSave = kind === 'tarjeta_credito'
-    ? !!identifier && !!holder && !!dni && !!expiry && !!security
-    : kind === 'cuenta_bancaria'
-      ? !!bank && !!country && !!identifier && Number(amount) > 0
-      : !!bank && !!identifier && Number(amount) > 0 && !!photo;
+  const cardValid = !validateCardNumber(identifier) && !validateExpiry(expiry) && !validateCvv(security) && !validateHolder(holder) && !validateDni(dni);
+  const cbuValid = !validateBank(bank) && !!country && !validateCbu(identifier) && !validateAmount(amount);
+  const chequeValid = !validateBank(bank) && !validateChequeNumber(identifier) && !validateAmount(amount) && !!photo;
+  const canSave = kind === 'tarjeta_credito' ? cardValid : kind === 'cuenta_bancaria' ? cbuValid : chequeValid;
   return (
     <Screen>
       <Header title={label} onBack={back} />
@@ -929,20 +1058,81 @@ export function PaymentAddScreen() {
       </Card>
       <StatusCard icon="lock-closed-outline" title="Validación del medio" message="La empresa puede revisar los datos antes de habilitarlo para pujas y pagos pendientes." tone="yellow" />
       {onboarding === 'true' ? <Button label="Omitir por ahora" variant="ghost" onPress={() => router.replace((returnTo || '/(tabs)') as Href)} /> : null}
-      {kind !== 'tarjeta_credito' ? <Input label="Nombre del banco" value={bank} onChangeText={setBank} /> : null}
-      {kind === 'cuenta_bancaria' ? <Input label="País del banco" value={country} onChangeText={setCountry} /> : null}
+      {kind !== 'tarjeta_credito' ? (
+        <Input
+          label="Nombre del banco" value={bank} placeholder="Ej: Banco Nación"
+          onChangeText={v => { setBank(v); if (errors.bank) setError('bank', validateBank(v)); }}
+          onBlur={() => setError('bank', validateBank(bank))}
+          error={errors.bank}
+        />
+      ) : null}
+      {kind === 'cuenta_bancaria' ? <Input label="País del banco" value={country} placeholder="Ej: Argentina" onChangeText={setCountry} /> : null}
       {kind === 'tarjeta_credito' ? <>
-        <Input label="Número de tarjeta" value={identifier} onChangeText={setIdentifier} />
-        <Input label="Titular" value={holder} onChangeText={setHolder} />
-        <Input label="DNI titular" value={dni} onChangeText={setDni} />
-        <Input label="Vencimiento" value={expiry} onChangeText={setExpiry} />
-        <Input label="Código de seguridad" secureTextEntry value={security} onChangeText={setSecurity} />
+        <Input
+          label="Número de tarjeta" value={identifier} keyboardType="number-pad"
+          placeholder="1234 5678 9012 3456"
+          onChangeText={handleCardNumber}
+          onBlur={() => setError('identifier', validateCardNumber(identifier))}
+          error={errors.identifier} maxLength={23}
+        />
+        <Input
+          label="Titular (como figura en la tarjeta)" value={holder} autoCapitalize="words"
+          placeholder="Nombre Apellido"
+          onChangeText={handleHolder}
+          onBlur={() => setError('holder', validateHolder(holder))}
+          error={errors.holder}
+        />
+        <Input
+          label="DNI del titular" value={dni} keyboardType="number-pad"
+          placeholder="12345678"
+          onChangeText={handleDni}
+          onBlur={() => setError('dni', validateDni(dni))}
+          error={errors.dni} maxLength={8}
+        />
+        <Input
+          label="Vencimiento" value={expiry} keyboardType="number-pad"
+          placeholder="MM/AA"
+          onChangeText={handleExpiry}
+          onBlur={() => setError('expiry', validateExpiry(expiry))}
+          error={errors.expiry} maxLength={5}
+        />
+        <Input
+          label="Código de seguridad" secureTextEntry value={security} keyboardType="number-pad"
+          placeholder="3 o 4 dígitos (CVV/CVC)"
+          onChangeText={handleCvv}
+          onBlur={() => setError('security', validateCvv(security))}
+          error={errors.security} maxLength={4}
+        />
       </> : kind === 'cuenta_bancaria' ? <>
-        <Input label="Fondos reservados para subasta" value={amount} keyboardType="number-pad" onChangeText={setAmount} />
-        <Input label="CBU/IBAN/Número de cuenta" value={identifier} onChangeText={setIdentifier} />
+        <Input
+          label="Fondos reservados para subasta" value={amount} keyboardType="number-pad"
+          placeholder="Ej: 50000"
+          onChangeText={v => { setAmount(v); if (errors.amount) setError('amount', validateAmount(v)); }}
+          onBlur={() => setError('amount', validateAmount(amount))}
+          error={errors.amount}
+        />
+        <Input
+          label="CBU/IBAN/Número de cuenta" value={identifier}
+          placeholder="22 dígitos para CBU"
+          onChangeText={v => { setIdentifier(v); if (errors.identifier) setError('identifier', validateCbu(v)); }}
+          onBlur={() => setError('identifier', validateCbu(identifier))}
+          error={errors.identifier}
+        />
       </> : <>
-        <Input label="Número de cheque" value={identifier} onChangeText={setIdentifier} />
-        <Input label="Monto certificado" value={amount} keyboardType="number-pad" onChangeText={setAmount} />
+        <Input
+          label="Número de cheque" value={identifier} keyboardType="number-pad"
+          placeholder="Ej: 00123456"
+          onChangeText={v => { setIdentifier(v); if (errors.identifier) setError('identifier', validateChequeNumber(v)); }}
+          onBlur={() => setError('identifier', validateChequeNumber(identifier))}
+          error={errors.identifier}
+        />
+        <Input
+          label="Monto certificado" value={amount} keyboardType="number-pad"
+          placeholder="Ej: 100000"
+          onChangeText={v => { setAmount(v); if (errors.amount) setError('amount', validateAmount(v)); }}
+          onBlur={() => setError('amount', validateAmount(amount))}
+          error={errors.amount}
+        />
       </>}
       {kind === 'cheque_certificado' ? <>
         <Body muted>Necesitamos abrir tu galeria para adjuntar la imagen del cheque. En computadora se abrira el selector de archivos.</Body>
@@ -994,7 +1184,7 @@ export function AssetDetailScreen() {
       <Card style={[styles.itemCard, styles.assetHeroCard]}>
         <View style={styles.cardHeaderRow}>
           <View style={styles.cardHeaderCopy}>
-            <Badge label={data.status} tone={data.status === 'Aceptado' ? 'green' : data.status === 'Rechazado' ? 'red' : 'yellow'} />
+            <Badge label={data.status} tone={data.status === 'Aceptado' ? 'green' : data.status === 'Rechazado' ? 'red' : data.status === 'En inspección' ? 'purple' : 'yellow'} />
             <Title>{data.title}</Title>
             <Body muted>{data.category}</Body>
           </View>
@@ -1010,9 +1200,30 @@ export function AssetDetailScreen() {
         <SummaryRow label="Comisión" value={data.commission != null ? formatCurrency(data.commission) : 'No asignado'} />
         <SummaryRow label="Depósito" value={data.depositLocation ?? 'No asignado'} />
       </Card>
+      {data.status === 'En inspección' ? (
+        <StatusCard
+          icon="cube-outline"
+          title="Bien en camino a inspección"
+          message="La empresa está interesada. Revisá el chat para ver la dirección de envío y enviá el bien físicamente."
+          tone="purple"
+        />
+      ) : null}
+      {data.status === 'Aceptado' && data.assignedAuction ? (
+        <Card style={styles.itemCard}>
+          <SectionHeader title="Subasta asignada" subtitle="La empresa te asignó una fecha y lugar" />
+          <SummaryRow label="Subasta" value={data.assignedAuction} />
+          {data.depositLocation ? <SummaryRow label="Depósito" value={data.depositLocation} /> : null}
+        </Card>
+      ) : null}
+      {data.status === 'Aceptado' && data.policyId ? (
+        <Card style={styles.itemCard}>
+          <SectionHeader title="Póliza de seguro" subtitle="Cobertura contratada sobre el bien" />
+          <Button label="Ver póliza de seguro" icon="shield-checkmark-outline" variant="secondary" onPress={() => router.push(`/policy/${data.policyId}` as Href)} />
+        </Card>
+      ) : null}
       <Button label="Ver detalle completo" variant="secondary" icon="open-outline" onPress={() => router.push({ pathname: '/profile/assets/[id]/full', params: { id: data.id } })} />
-      {data.status === 'Aceptado' ? <>
-        <Button label="Aceptar condiciones" onPress={() => accept.mutate(true)} />
+      {data.status === 'Aceptado' && !data.conditionsAccepted ? <>
+        <Button label="Aceptar condiciones" onPress={() => router.push(`/profile/assets/${data.id}/accept-conditions` as Href)} />
         <Button label="Rechazar condiciones" variant="secondary" onPress={() => accept.mutate(false)} />
       </> : null}
       {accept.isSuccess ? <StatusCard icon="checkmark-circle-outline" title="Respuesta enviada" message="Registramos tu decisión sobre las condiciones del bien." tone="green" /> : null}
@@ -1021,13 +1232,142 @@ export function AssetDetailScreen() {
   );
 }
 
+export function AcceptConditionsScreen() {
+  const router = useRouter();
+  const back = useSafeBack();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const [selectedAccountId, setSelectedAccountId] = useState<string>();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [bank, setBank] = useState('');
+  const [identifier, setIdentifier] = useState('');
+  const [country, setCountry] = useState('Argentina');
+  const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
+
+  const { data: accounts, isLoading, isError, refetch } = useQuery({
+    queryKey: ['collection-accounts'],
+    queryFn: collectionAccountService.list,
+  });
+
+  useEffect(() => {
+    if (isLoading || !accounts) return;
+    if (accounts.length === 0) setShowAddForm(true);
+    else if (!selectedAccountId) setSelectedAccountId(accounts[0].id);
+  }, [isLoading, accounts, selectedAccountId]);
+
+  const addAccount = useMutation({
+    mutationFn: () => collectionAccountService.create({ bankName: bank, identifier, country, currency }),
+    onSuccess: (newAccount) => {
+      queryClient.invalidateQueries({ queryKey: ['collection-accounts'] });
+      setSelectedAccountId(newAccount.id);
+      setShowAddForm(false);
+      setBank('');
+      setIdentifier('');
+    },
+  });
+
+  const accept = useMutation({
+    mutationFn: () => assetService.acceptConditions(id ?? '', true, selectedAccountId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['asset', id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      setSuccess(true);
+    },
+  });
+
+  if (isLoading) return <Screen><LoadingState /></Screen>;
+  if (isError) return <Screen><Header title="Cuenta de cobro" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
+
+  if (success) return (
+    <Screen style={styles.successScreen}>
+      <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+      <Text style={styles.successTitle}>Condiciones aceptadas</Text>
+      <Body muted>Registramos tu cuenta de cobro y tu aceptación.</Body>
+      <Button label="Ver mis bienes" onPress={() => router.replace('/profile/assets' as Href)} />
+    </Screen>
+  );
+
+  return (
+    <Screen>
+      <Header title="Cuenta de cobro" onBack={back} />
+      <StatusState
+        icon="cash-outline"
+        title="¿A qué cuenta enviamos el dinero?"
+        message="Seleccioná la cuenta donde querés recibir el importe cuando se concrete la venta."
+        tone="purple"
+      />
+      {accounts?.length ? <>
+        <SectionHeader title="Cuentas declaradas" subtitle="Elegí una para este bien" />
+        {accounts.map((account) => (
+          <Pressable key={account.id} onPress={() => { setSelectedAccountId(account.id); setShowAddForm(false); }}>
+            <Card style={[styles.itemCard, selectedAccountId === account.id && styles.accountCardSelected]}>
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.cardHeaderCopy}>
+                  <Text style={styles.cardTitle}>{account.bankName}</Text>
+                  <Body muted>{account.identifier}</Body>
+                  <Body muted>{account.country} · {account.currency}</Body>
+                </View>
+                <Ionicons
+                  name={selectedAccountId === account.id ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={22}
+                  color={selectedAccountId === account.id ? colors.success : colors.textMuted}
+                />
+              </View>
+            </Card>
+          </Pressable>
+        ))}
+      </> : null}
+      {!showAddForm ? (
+        <Button label="Agregar cuenta nueva" variant="secondary" icon="add-outline" onPress={() => setShowAddForm(true)} />
+      ) : (
+        <Card style={styles.itemCard}>
+          <SectionHeader title="Nueva cuenta de cobro" subtitle="Completá los datos bancarios" />
+          <Input label="Nombre del banco" value={bank} onChangeText={setBank} placeholder="Ej: Banco Nación" />
+          <Input label="CBU / IBAN" value={identifier} onChangeText={setIdentifier} placeholder="Ej: 0000000000000000000000" />
+          <Input label="País del banco" value={country} onChangeText={setCountry} placeholder="Ej: Argentina" />
+          <Body muted>Moneda de la cuenta</Body>
+          <View style={styles.currencyToggle}>
+            {(['ARS', 'USD'] as const).map((c) => (
+              <Pressable key={c} onPress={() => setCurrency(c)} style={[styles.currencyOption, currency === c && styles.currencyOptionActive]}>
+                <Text style={[styles.currencyOptionText, currency === c && styles.currencyOptionTextActive]}>{c}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <SecurityNote text="Esta cuenta recibirá el pago cuando la empresa cierre la venta del bien." />
+          <Button
+            label={addAccount.isPending ? 'Guardando...' : 'Guardar cuenta'}
+            disabled={!bank.trim() || !identifier.trim() || addAccount.isPending}
+            onPress={() => addAccount.mutate()}
+          />
+          {accounts?.length ? <Button label="Cancelar" variant="ghost" onPress={() => setShowAddForm(false)} /> : null}
+          {addAccount.isError ? <Body muted>{errorToUserMessage(addAccount.error, 'No fue posible guardar la cuenta.')}</Body> : null}
+        </Card>
+      )}
+      {!showAddForm ? <>
+        <Divider />
+        <Button
+          label={accept.isPending ? 'Aceptando...' : 'Confirmar y aceptar condiciones'}
+          disabled={!selectedAccountId || accept.isPending}
+          onPress={() => accept.mutate()}
+        />
+        {accept.isError ? <Body muted>{errorToUserMessage(accept.error, 'No fue posible aceptar las condiciones.')}</Body> : null}
+      </> : null}
+    </Screen>
+  );
+}
+
 export function AssetFullDetailScreen() {
+  const router = useRouter();
   const back = useSafeBack();
   const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['asset', id], queryFn: () => assetService.get(id ?? '') });
   const [photoIndex, setPhotoIndex] = useState(0);
   const [editing, setEditing] = useState(false);
+  const [editingPrice, setEditingPrice] = useState(false);
   const [additionalInformation, setAdditionalInformation] = useState('');
   const [suggestedBasePrice, setSuggestedBasePrice] = useState('');
   const [suggestedBasePriceCurrency, setSuggestedBasePriceCurrency] = useState('ARS');
@@ -1048,6 +1388,7 @@ export function AssetFullDetailScreen() {
       queryClient.setQueryData(['asset', id], updatedAsset);
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       setEditing(false);
+      setEditingPrice(false);
     },
   });
 
@@ -1088,7 +1429,7 @@ export function AssetFullDetailScreen() {
       <Card style={[styles.itemCard, styles.assetHeroCard]}>
         <View style={styles.cardHeaderRow}>
           <View style={styles.cardHeaderCopy}>
-            <Badge label={data.status} tone={data.status === 'Aceptado' ? 'green' : data.status === 'Rechazado' ? 'red' : 'yellow'} />
+            <Badge label={data.status} tone={data.status === 'Aceptado' ? 'green' : data.status === 'Rechazado' ? 'red' : data.status === 'En inspección' ? 'purple' : 'yellow'} />
             <Title>{data.title}</Title>
             <Body muted>{data.category}</Body>
           </View>
@@ -1148,11 +1489,46 @@ export function AssetFullDetailScreen() {
         <SectionHeader title="Condiciones de subasta" subtitle="Valores y asignaciones definidos para el bien" />
         <View style={styles.fieldGrid}>
           <AssetField label="Precio base asignado" value={data.basePrice != null ? formatCurrency(data.basePrice) : undefined} />
-          <AssetField label="Precio base sugerido" value={data.suggestedBasePrice != null ? formatAmountWithCurrency(data.suggestedBasePrice, data.suggestedBasePriceCurrency) : undefined} />
+          {data.status === 'Pendiente' ? (
+            editingPrice ? (
+              <View style={styles.fieldCard}>
+                <Body muted>Precio base sugerido</Body>
+                <Input label="" value={suggestedBasePrice} onChangeText={setSuggestedBasePrice} keyboardType="number-pad" placeholder="Ej. 50000" />
+                <View style={styles.currencyToggle}>
+                  {(['ARS', 'USD'] as const).map((c) => (
+                    <Pressable key={c} onPress={() => setSuggestedBasePriceCurrency(c)} style={[styles.currencyOption, suggestedBasePriceCurrency === c && styles.currencyOptionActive]}>
+                      <Text style={[styles.currencyOptionText, suggestedBasePriceCurrency === c && styles.currencyOptionTextActive]}>{c}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <View style={styles.editActionsRow}>
+                  <Button label={updateAsset.isPending ? 'Guardando...' : 'Guardar'} size="sm" disabled={updateAsset.isPending} onPress={() => updateAsset.mutate()} />
+                  <Button label="Cancelar" size="sm" variant="secondary" onPress={() => setEditingPrice(false)} />
+                </View>
+              </View>
+            ) : (
+              <Pressable onPress={() => setEditingPrice(true)}>
+                <View style={styles.fieldCard}>
+                  <Body muted>Precio base sugerido</Body>
+                  <View style={styles.cardHeaderRow}>
+                    <Text style={styles.fieldValue}>{data.suggestedBasePrice != null ? formatAmountWithCurrency(data.suggestedBasePrice, data.suggestedBasePriceCurrency) : 'No asignado'}</Text>
+                    <Ionicons name="pencil-outline" size={16} color={colors.primary} />
+                  </View>
+                </View>
+              </Pressable>
+            )
+          ) : (
+            <AssetField label="Precio base sugerido" value={data.suggestedBasePrice != null ? formatAmountWithCurrency(data.suggestedBasePrice, data.suggestedBasePriceCurrency) : undefined} />
+          )}
           <AssetField label="Comisión" value={data.commission != null ? formatCurrency(data.commission) : undefined} />
           <AssetField label="Subasta asignada" value={data.assignedAuction} />
           <AssetField label="Depósito" value={data.depositLocation} />
           <AssetField label="Póliza" value={data.policyId} />
+        </View>
+        {data.policyId ? (
+          <Button label="Ver póliza de seguro" icon="shield-checkmark-outline" variant="secondary" onPress={() => router.push(`/policy/${data.policyId}` as Href)} />
+        ) : null}
+        <View style={styles.fieldGrid}>
         </View>
         <SecurityNote text="El precio base sugerido puede ser revisado por la empresa antes de asignar el bien a una subasta." />
       </Card>
@@ -1173,34 +1549,38 @@ export function AssetFullDetailScreen() {
           <EmptyState title="Sin documentación visible" message="Cuando haya documentos adjuntos aparecerán en esta sección." />
         )}
       </Card>
-      <Card style={styles.itemCard}>
-        <SectionHeader title="Editar datos del bien" subtitle="Podés ajustar información visible para la revisión de la empresa" />
-        {!editing ? (
-          <>
-            <Body muted>Estos datos ayudan a la empresa a preparar la futura subasta del bien.</Body>
-            <Button label="Editar información" variant="secondary" onPress={() => setEditing(true)} />
-          </>
-        ) : (
-          <>
-            <Input label="Información adicional" value={additionalInformation} onChangeText={setAdditionalInformation} multiline />
-            <Input label="Precio base sugerido" value={suggestedBasePrice} onChangeText={setSuggestedBasePrice} keyboardType="number-pad" />
-            <Body muted>Divisa del precio sugerido</Body>
-            <View style={styles.currencyToggle}>
-              {['ARS', 'USD'].map((currency) => (
-                <Pressable key={currency} onPress={() => setSuggestedBasePriceCurrency(currency)} style={[styles.currencyOption, suggestedBasePriceCurrency === currency && styles.currencyOptionActive]}>
-                  <Text style={[styles.currencyOptionText, suggestedBasePriceCurrency === currency && styles.currencyOptionTextActive]}>{currency}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <Body muted>El precio base sugerido no abre la subasta automáticamente. La empresa puede revisarlo antes de asignar el bien.</Body>
-            <View style={styles.editActionsRow}>
-              <Button label={updateAsset.isPending ? 'Guardando...' : 'Guardar cambios'} disabled={updateAsset.isPending || invalidSuggestedBasePrice || (!!suggestedBasePrice && !suggestedBasePriceCurrency)} onPress={() => updateAsset.mutate()} />
-              <Button label="Cancelar" variant="secondary" disabled={updateAsset.isPending} onPress={() => setEditing(false)} />
-            </View>
-            {updateAsset.isError ? <Body muted>{errorToUserMessage(updateAsset.error, 'No fue posible guardar los cambios.')}</Body> : null}
-          </>
-        )}
-      </Card>
+      {data.status !== 'Rechazado' ? (
+        <Card style={styles.itemCard}>
+          <SectionHeader title="Editar datos del bien" subtitle="Podés ajustar información visible para la revisión de la empresa" />
+          {!editing ? (
+            <>
+              <Body muted>Estos datos ayudan a la empresa a preparar la futura subasta del bien.</Body>
+              <Button label="Editar información" variant="secondary" onPress={() => setEditing(true)} />
+            </>
+          ) : (
+            <>
+              <Input label="Información adicional" value={additionalInformation} onChangeText={setAdditionalInformation} multiline />
+              {data.status === 'Pendiente' ? <>
+                <Input label="Precio base sugerido" value={suggestedBasePrice} onChangeText={setSuggestedBasePrice} keyboardType="number-pad" />
+                <Body muted>Divisa del precio sugerido</Body>
+                <View style={styles.currencyToggle}>
+                  {['ARS', 'USD'].map((currency) => (
+                    <Pressable key={currency} onPress={() => setSuggestedBasePriceCurrency(currency)} style={[styles.currencyOption, suggestedBasePriceCurrency === currency && styles.currencyOptionActive]}>
+                      <Text style={[styles.currencyOptionText, suggestedBasePriceCurrency === currency && styles.currencyOptionTextActive]}>{currency}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Body muted>El precio base sugerido no abre la subasta automáticamente. La empresa puede revisarlo antes de asignar el bien.</Body>
+              </> : null}
+              <View style={styles.editActionsRow}>
+                <Button label={updateAsset.isPending ? 'Guardando...' : 'Guardar cambios'} disabled={updateAsset.isPending || invalidSuggestedBasePrice || (!!suggestedBasePrice && !suggestedBasePriceCurrency)} onPress={() => updateAsset.mutate()} />
+                <Button label="Cancelar" variant="secondary" disabled={updateAsset.isPending} onPress={() => setEditing(false)} />
+              </View>
+              {updateAsset.isError ? <Body muted>{errorToUserMessage(updateAsset.error, 'No fue posible guardar los cambios.')}</Body> : null}
+            </>
+          )}
+        </Card>
+      ) : null}
       <LoadingOverlay visible={updateAsset.isPending} />
     </Screen>
   );
@@ -1245,6 +1625,7 @@ const styles = StyleSheet.create({
   fieldGrid: { gap: spacing.sm },
   fieldCard: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, gap: spacing.xs },
   fieldValue: { color: colors.textStrong, fontSize: typography.body, fontFamily: fonts.medium },
+  accountCardSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   currencyToggle: { flexDirection: 'row', gap: spacing.sm },
   currencyOption: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceAlt },
   currencyOptionActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
@@ -1292,6 +1673,7 @@ const styles = StyleSheet.create({
   userTime: { color: '#DED9FF' },
   compose: { marginTop: spacing.lg, gap: spacing.sm },
   successScreen: { alignItems: 'center', paddingTop: 70 },
+  successTitle: { fontSize: 22, fontWeight: '700', color: colors.text, marginTop: 16, marginBottom: 8, textAlign: 'center' },
   overlaySoft: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(17,17,23,0.45)', alignItems: 'center', justifyContent: 'center', padding: spacing.xl, zIndex: 20 },
   countryModal: { width: '100%', maxHeight: '82%', gap: spacing.md },
   countryModalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },

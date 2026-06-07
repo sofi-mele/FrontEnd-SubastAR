@@ -15,6 +15,18 @@ import { errorToUserMessage } from '@/services/errors';
 import { explainFileAccess, permissionDeniedMessage, requestMediaLibraryPermission } from '@/services/permissions';
 import type { FileUpload } from '@/types/domain';
 
+const MAX_WORDS = 35;
+
+function countWords(text: string) {
+  return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+}
+
+function limitWords(text: string) {
+  const words = text.split(/\s+/);
+  if (words.length <= MAX_WORDS) return text;
+  return words.slice(0, MAX_WORDS).join(' ');
+}
+
 const steps = ['Datos', 'Fotos', 'Documentos', 'Confirmar'];
 const categoryOptions = [
   { value: 'obra_arte', label: 'Obras de arte', description: 'Pinturas, esculturas y diseños autorales', icon: 'color-palette-outline' as const },
@@ -30,7 +42,6 @@ function WizardHeader({ current }: { current: number }) {
           <Badge label={`Paso ${current + 1} de ${steps.length}`} tone="purple" />
           <Text style={styles.wizardTitle}>{steps[current]}</Text>
         </View>
-        <IconButton icon="information-circle-outline" accessibilityLabel="Información del paso" tone="primary" />
       </View>
       <StepIndicator steps={steps} current={current} />
     </Card>
@@ -87,15 +98,22 @@ export function SellStartScreen() {
   const [period, setPeriod] = useState('');
   const [history, setHistory] = useState('');
   const [additional, setAdditional] = useState('');
+  const [suggestedPrice, setSuggestedPrice] = useState('');
+  const [suggestedCurrency, setSuggestedCurrency] = useState<'ARS' | 'USD'>('ARS');
+  const [existingCode, setExistingCode] = useState('');
   const save = useMutation({
     mutationFn: async () => {
-      const request = await assetService.start(category);
-      await assetService.saveDetails(request.code, {
+      const code = existingCode || (await assetService.start(category)).code;
+      if (!existingCode) setExistingCode(code);
+      const numericPrice = suggestedPrice ? Number(suggestedPrice) : undefined;
+      await assetService.saveDetails(code, {
         type: category, name, technicalDescription: description, amount: Number(amount), artistDesigner: artist || undefined,
         originPeriod: period || undefined, creationDate: date || undefined, history: history || undefined,
         additionalInformation: additional || undefined,
+        suggestedBasePrice: numericPrice && numericPrice > 0 ? numericPrice : undefined,
+        suggestedBasePriceCurrency: numericPrice && numericPrice > 0 ? suggestedCurrency : undefined,
       });
-      return request.code;
+      return code;
     },
     onSuccess: (code) => router.push({ pathname: '/sell/photos', params: { code, name, type: category, amount } }),
   });
@@ -115,20 +133,38 @@ export function SellStartScreen() {
       {category ? <>
         <WizardHeader current={0} />
         <SectionHeader title="Información operativa" subtitle="Completá los campos principales para iniciar la solicitud" />
-        <Input label="Nombre del bien" placeholder="Ej. Retrato en óleo" value={name} onChangeText={setName} />
-        <Input label="Descripción técnica" placeholder="Materiales, medidas y estado" multiline value={description} onChangeText={setDescription} />
+        <Input label="Nombre del bien *" placeholder="Ej. Retrato en óleo" value={name} onChangeText={setName} />
+        <View>
+          <Input label="Descripción técnica *" placeholder="Materiales, medidas y estado" multiline value={description} onChangeText={(t) => setDescription(limitWords(t))} />
+          <Text style={styles.wordCount}>{countWords(description)}/{MAX_WORDS} palabras</Text>
+        </View>
         <Input label="Cantidad de elementos *" keyboardType="number-pad" value={amount} onChangeText={setAmount} />
+        <Input label="Precio base sugerido (opcional)" keyboardType="number-pad" value={suggestedPrice} onChangeText={setSuggestedPrice} placeholder="Ej. 50000" />
+        <Body muted>Moneda del precio sugerido</Body>
+        <View style={styles.currencyToggle}>
+          {(['ARS', 'USD'] as const).map((c) => (
+            <Pressable key={c} onPress={() => setSuggestedCurrency(c)} style={[styles.currencyOption, suggestedCurrency === c && styles.currencyOptionActive]}>
+              <Text style={[styles.currencyOptionText, suggestedCurrency === c && styles.currencyOptionTextActive]}>{c}</Text>
+            </Pressable>
+          ))}
+        </View>
         {category === 'obra_arte' ? <>
           <Input label="Artista" value={artist} onChangeText={setArtist} />
           <DateInput label="Fecha de creación (AAAA-MM-DD)" value={date} onChangeText={setDate} />
           <Input label="Época u origen" value={period} onChangeText={setPeriod} />
-          <Input label="Historia y procedencia" multiline value={history} onChangeText={setHistory} />
+          <View>
+            <Input label="Historia y procedencia" multiline value={history} onChangeText={(t) => setHistory(limitWords(t))} />
+            <Text style={styles.wordCount}>{countWords(history)}/{MAX_WORDS} palabras</Text>
+          </View>
         </> : null}
         {category === 'objeto_disenador' ? <>
-          <Input label="Diseñador" value={artist} onChangeText={setArtist} />
-          <DateInput label="Fecha de creación (AAAA-MM-DD)" value={date} onChangeText={setDate} />
+          <Input label="Diseñador *" value={artist} onChangeText={setArtist} />
+          <DateInput label="Fecha de creación (AAAA-MM-DD) *" value={date} onChangeText={setDate} />
         </> : null}
-        {category === 'otro' ? <Input label="Información adicional" value={additional} onChangeText={setAdditional} /> : null}
+        {category === 'otro' ? <View>
+          <Input label="Información adicional *" value={additional} onChangeText={(t) => setAdditional(limitWords(t))} />
+          <Text style={styles.wordCount}>{countWords(additional)}/{MAX_WORDS} palabras</Text>
+        </View> : null}
         <Divider />
         <Button label={save.isPending ? 'Guardando...' : 'Continuar con fotografías'} disabled={!name || !description || Number(amount) <= 0 || save.isPending} onPress={() => save.mutate()} />
         {save.isError ? <Body muted>{errorToUserMessage(save.error, 'No fue posible iniciar la solicitud.')}</Body> : null}
@@ -159,7 +195,7 @@ export function SellPhotosScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, quality: 0.7 });
       if (!result.canceled) setPhotos((current) => [...current, ...result.assets.map((asset, index) => ({
         uri: asset.uri, name: asset.fileName ?? `bien-${Date.now()}-${index}.jpg`, type: asset.mimeType ?? 'image/jpeg', file: asset.file,
-      }))].slice(0, 8));
+      }))]);
     } catch {
       setApiError(permissionDeniedMessage('gallery'));
     }
@@ -170,12 +206,11 @@ export function SellPhotosScreen() {
       <Card style={styles.heroCard}>
         <Badge label="Paso 2 - Fotos" tone="purple" />
         <Title>Cargá imágenes nítidas y completas</Title>
-        <Body muted>Mostrá el bien desde varios ángulos. Necesitás entre 6 y 8 fotos para seguir.</Body>
+        <Body muted>Mostrá el bien desde varios ángulos. Necesitás al menos 6 fotos para seguir.</Body>
       </Card>
       <WizardHeader current={1} />
       <View style={styles.tileRow}>
         <InfoTile icon="camera-outline" label="Mínimo" value="6 fotos" tone={photos.length >= 6 ? 'green' : 'yellow'} />
-        <InfoTile icon="images-outline" label="Máximo" value="8 fotos" />
       </View>
       <Card style={styles.dropzoneCard}>
         <Body muted>Para cargar fotos necesitamos abrir tu galeria. En computadora se abrira el selector de archivos.</Body>
@@ -186,7 +221,7 @@ export function SellPhotosScreen() {
       <View style={styles.gallery}>
         {photos.map((file) => <PhotoPreview key={file.uri} file={file} onRemove={() => setPhotos((current) => current.filter((photo) => photo.uri !== file.uri))} />)}
       </View>
-      <Badge label={`${photos.length} de 8 fotos cargadas`} tone={photos.length >= 6 ? 'green' : 'yellow'} />
+      <Badge label={`${photos.length} foto${photos.length !== 1 ? 's' : ''} cargada${photos.length !== 1 ? 's' : ''}`} tone={photos.length >= 6 ? 'green' : 'yellow'} />
       <Button label={upload.isPending ? 'Subiendo...' : 'Continuar'} disabled={photos.length < 6 || upload.isPending} onPress={() => upload.mutate()} />
       {upload.isError ? <Body muted>{errorToUserMessage(upload.error, 'No fue posible subir las fotos.')}</Body> : null}
     </Screen>
@@ -359,6 +394,12 @@ const styles = StyleSheet.create({
   summaryValue: { color: colors.textStrong, fontFamily: fonts.bold, fontSize: typography.body },
   success: { paddingTop: 75, alignItems: 'center' },
   fullWidth: { width: '100%' },
+  wordCount: { color: colors.textMuted, fontSize: typography.caption, fontFamily: fonts.regular, textAlign: 'right', marginTop: 2 },
+  currencyToggle: { flexDirection: 'row', gap: spacing.sm },
+  currencyOption: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceAlt },
+  currencyOptionActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  currencyOptionText: { color: colors.textMuted, fontFamily: fonts.medium },
+  currencyOptionTextActive: { color: colors.primary, fontFamily: fonts.bold },
 });
 
 

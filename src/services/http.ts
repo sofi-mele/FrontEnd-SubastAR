@@ -2,9 +2,11 @@ import { getToken } from '@/services/session-storage';
 import { getServerCommunicationFallback, getServerConnectionMessage, normalizeServerMessage } from '@/services/errors';
 let unauthorizedHandler: undefined | (() => void | Promise<void>);
 let networkErrorHandler: undefined | (() => void | Promise<void>);
+let logoutInProgress = false;
 
 export function setUnauthorizedHandler(handler?: () => void | Promise<void>) {
   unauthorizedHandler = handler;
+  logoutInProgress = false;
 }
 
 export function setNetworkErrorHandler(handler?: () => void | Promise<void>) {
@@ -46,6 +48,8 @@ export const apiRoutes = {
   assetRequestDocuments: (code: string) => `/bienes/solicitudes/${code}/documentos`,
   assetRequestConfirm: (code: string) => `/bienes/solicitudes/${code}/confirmar`,
   assetConditions: (id: string) => `/bienes/mis-bienes/${id}/aceptar-condiciones`,
+  collectionAccounts: '/usuarios/me/cuentas-cobro',
+  collectionAccount: (id: string) => `/usuarios/me/cuentas-cobro/${id}`,
   purchases: '/compras',
   purchase: (id: string) => `/compras/${id}`,
   regularizePurchase: (id: string) => `/compras/${id}/regularizar-pago`,
@@ -131,7 +135,10 @@ export async function request<T>(route: string, options?: RequestInit): Promise<
   }
   if (!response.ok) {
     const message = await extractErrorMessage(response);
-    if (response.status === 401 && unauthorizedHandler) await unauthorizedHandler();
+    if (response.status === 401 && unauthorizedHandler && !logoutInProgress) {
+      logoutInProgress = true;
+      await unauthorizedHandler();
+    }
     throw new ApiError(message, response.status);
   }
   if (response.status === 204) return undefined as T;
@@ -151,7 +158,10 @@ export async function requestText(route: string, options?: RequestInit): Promise
   }
   if (!response.ok) {
     const message = await extractErrorMessage(response);
-    if (response.status === 401 && unauthorizedHandler) await unauthorizedHandler();
+    if (response.status === 401 && unauthorizedHandler && !logoutInProgress) {
+      logoutInProgress = true;
+      await unauthorizedHandler();
+    }
     throw new ApiError(message, response.status);
   }
   return response.text();

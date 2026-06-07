@@ -5,6 +5,8 @@ import type {
   AuctionResult,
   Auction,
   Bid,
+  CollectionAccount,
+  CollectionAccountCreate,
   Conversation,
   FileUpload,
   InsurancePolicy,
@@ -66,7 +68,7 @@ type BackendAsset = {
   comision?: number | null; ubicacion_deposito?: string | null; poliza_id?: string | number | null; descripcion_tecnica?: string | null; cantidad_elementos?: number | null;
   informacion_adicional?: string | null; epoca_origen?: string | null; artista_disenador?: string | null; datos_historicos?: string | null;
   precio_base_sugerido?: number | null; divisa_precio_base_sugerido?: string | null;
-  fotos_cargadas?: number; documentacion_adjunta?: boolean; fotos?: BackendAssetPhoto[]; documentos?: BackendAssetDocument[];
+  fotos_cargadas?: number; documentacion_adjunta?: boolean; acepto_condiciones?: boolean | null; fotos?: BackendAssetPhoto[]; documentos?: BackendAssetDocument[];
 };
 type BackendPurchase = {
   id: number; nombre_item: string; subasta: string; fecha?: string; valor_pujado: number; multa: number;
@@ -94,6 +96,19 @@ type BackendAssetSubmission = {
   codigo_solicitud: string; tipo: string; estado: string; paso_actual: string; fotos_cargadas: number;
   minimo_fotos_requeridas: number; puede_confirmar: boolean;
 };
+type BackendCollectionAccount = {
+  id: number; nombre_banco: string; cbu_iban: string; pais: string; moneda: 'ARS' | 'USD';
+};
+
+function mapCollectionAccount(account: BackendCollectionAccount): CollectionAccount {
+  return {
+    id: String(account.id),
+    bankName: account.nombre_banco,
+    identifier: account.cbu_iban,
+    country: account.pais,
+    currency: account.moneda,
+  };
+}
 
 function absoluteAsset(value?: string | null) {
   if (!value) return undefined;
@@ -177,7 +192,7 @@ function mapAsset(asset: BackendAsset): OwnedAsset {
     id: String(asset.id),
     title: asset.nombre,
     category: asset.tipo ?? asset.subasta_asignada ?? 'Sin asignar',
-    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : 'Pendiente',
+    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : normalizedStatus === 'pendiente_inspeccion' || normalizedStatus === 'en_inspeccion' ? 'En inspección' : 'Pendiente',
     detail: asset.descripcion_tecnica ?? asset.motivo_rechazo ?? asset.subasta_asignada ?? 'En evaluación',
     technicalDescription: asset.descripcion_tecnica ?? undefined,
     quantity: asset.cantidad_elementos ?? undefined,
@@ -192,6 +207,7 @@ function mapAsset(asset: BackendAsset): OwnedAsset {
     assignedAuction: asset.subasta_asignada ?? undefined,
     depositLocation: asset.ubicacion_deposito ?? undefined,
     policyId: asset.poliza_id ? String(asset.poliza_id) : undefined,
+    conditionsAccepted: asset.acepto_condiciones ?? false,
     photosUploaded: asset.fotos_cargadas,
     documentationAttached: asset.documentacion_adjunta,
     photos: (asset.fotos ?? []).map((photo) => ({
@@ -531,6 +547,7 @@ export const assetService = {
   async list(status?: string): Promise<OwnedAsset[]> {
     const statusMap: Record<string, string> = {
       Pendiente: 'en_revision',
+      'En inspección': 'pendiente_inspeccion',
       Aceptado: 'aceptado',
       Rechazado: 'rechazado',
     };
@@ -562,6 +579,7 @@ export const assetService = {
         tipo: input.type, nombre: input.name, descripcion_tecnica: input.technicalDescription, cantidad_elementos: input.amount,
         epoca_origen: input.originPeriod, artista_disenador: input.artistDesigner, fecha_creacion: input.creationDate,
         datos_historicos: input.history, informacion_adicional: input.additionalInformation,
+        precio_base_sugerido: input.suggestedBasePrice, divisa_precio_base_sugerido: input.suggestedBasePriceCurrency,
       }),
     });
   },
@@ -594,8 +612,26 @@ export const assetService = {
   async confirm(code: string) {
     return request<{ codigo_solicitud: string; codigo_bien: string; estado: string; message: string }>(apiRoutes.assetRequestConfirm(code), { method: 'POST' });
   },
-  async acceptConditions(id: string, accepted: boolean) {
-    return request<{ message: string }>(apiRoutes.assetConditions(id), { method: 'POST', body: JSON.stringify({ acepta: accepted }) });
+  async acceptConditions(id: string, accepted: boolean, collectionAccountId?: string) {
+    return request<{ message: string }>(apiRoutes.assetConditions(id), {
+      method: 'POST',
+      body: JSON.stringify({
+        acepta: accepted,
+        ...(collectionAccountId ? { cuenta_cobro_id: Number(collectionAccountId) } : {}),
+      }),
+    });
+  },
+};
+
+export const collectionAccountService = {
+  async list(): Promise<CollectionAccount[]> {
+    return (await request<BackendCollectionAccount[]>(apiRoutes.collectionAccounts)).map(mapCollectionAccount);
+  },
+  async create(input: CollectionAccountCreate): Promise<CollectionAccount> {
+    return mapCollectionAccount(await request<BackendCollectionAccount>(apiRoutes.collectionAccounts, {
+      method: 'POST',
+      body: JSON.stringify({ nombre_banco: input.bankName, cbu_iban: input.identifier, pais: input.country, moneda: input.currency }),
+    }));
   },
 };
 

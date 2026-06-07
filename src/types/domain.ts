@@ -79,7 +79,7 @@ export interface OwnedAsset {
   id: string;
   title: string;
   category: string;
-  status: 'Pendiente' | 'Aceptado' | 'Rechazado';
+  status: 'Pendiente' | 'En inspección' | 'Aceptado' | 'Rechazado';
   detail: string;
   technicalDescription?: string;
   quantity?: number;
@@ -94,6 +94,7 @@ export interface OwnedAsset {
   assignedAuction?: string;
   depositLocation?: string;
   policyId?: string;
+  conditionsAccepted?: boolean;
   photosUploaded?: number;
   documentationAttached?: boolean;
   photos?: {
@@ -229,6 +230,21 @@ export interface AssetSubmission {
   mayConfirm: boolean;
 }
 
+export interface CollectionAccount {
+  id: string;
+  bankName: string;
+  identifier: string;
+  country: string;
+  currency: 'ARS' | 'USD';
+}
+
+export interface CollectionAccountCreate {
+  bankName: string;
+  identifier: string;
+  country: string;
+  currency: 'ARS' | 'USD';
+}
+
 export interface AssetDetailsInput {
   type: string;
   name: string;
@@ -239,6 +255,8 @@ export interface AssetDetailsInput {
   creationDate?: string;
   history?: string;
   additionalInformation?: string;
+  suggestedBasePrice?: number;
+  suggestedBasePriceCurrency?: string;
 }
 
 export interface InsurancePolicy {
