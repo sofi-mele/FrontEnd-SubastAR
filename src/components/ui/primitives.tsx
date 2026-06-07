@@ -35,7 +35,9 @@ export function Screen({
   contentContainerStyle,
   bottomInset = 0,
 }: PropsWithChildren<{ scroll?: boolean; style?: StyleProp<ViewStyle>; contentContainerStyle?: StyleProp<ViewStyle>; bottomInset?: number }>) {
-  const content = <View style={[styles.content, style]}>{children}</View>;
+  const content = scroll
+    ? <View style={[styles.content, style]}>{children}</View>
+    : <View style={[{ flex: 1, width: '100%' }, style]}>{children}</View>;
   return (
     <SafeAreaView style={styles.safe}>
       {scroll ? (

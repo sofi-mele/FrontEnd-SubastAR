@@ -808,14 +808,14 @@ export function OnboardingPaymentScreen() {
 }
 
 const styles = StyleSheet.create({
-  splashScreen: { flex: 1, backgroundColor: colors.background },
-  splashBackground: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', paddingHorizontal: spacing.xl },
+  splashScreen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 0 },
+  splashBackground: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', width: '100%' },
   splashGlow: { position: 'absolute', width: 320, height: 320, borderRadius: 160, backgroundColor: colors.primarySoft, opacity: 0.62 },
-  splashGlowTop: { top: -110, right: -90 },
-  splashGlowBottom: { bottom: -130, left: -100, opacity: 0.45 },
+  splashGlowTop: { top: -60, left: -60 },
+  splashGlowBottom: { bottom: -60, right: -60, opacity: 0.45 },
   splashRingOne: { position: 'absolute', width: 420, height: 420, borderRadius: 210, borderWidth: 1, borderColor: colors.primaryBorder, opacity: 0.35, top: -140, left: -150 },
   splashRingTwo: { position: 'absolute', width: 300, height: 300, borderRadius: 150, borderWidth: 1, borderColor: colors.border, opacity: 0.55, bottom: -120, right: -80 },
-  splashBrandBlock: { alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
+  splashBrandBlock: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center', width: '100%', gap: spacing.lg },
   splashLogoCircle: {
     width: 156,
     height: 156,
@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
   splashSubtitle: { fontSize: typography.body, fontFamily: fonts.medium, color: colors.textMuted, textAlign: 'center' },
   splashFeaturePill: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xl, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primaryBorder },
   splashFeatureText: { color: colors.primary, fontFamily: fonts.medium, fontSize: typography.small },
-  splashProgressBlock: { position: 'absolute', bottom: spacing.xl, alignItems: 'center', gap: spacing.sm },
+  splashProgressBlock: { position: 'absolute', bottom: spacing.xl, alignSelf: 'center', alignItems: 'center', gap: spacing.sm },
   splashProgressTrack: { width: 180, height: 5, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   splashProgressFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.primary },
   splashLoadingText: { color: colors.textMuted, fontFamily: fonts.medium, fontSize: typography.caption },
