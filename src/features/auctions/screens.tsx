@@ -207,7 +207,7 @@ export function CatalogScreen() {
       </View>
       {isLoading ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : (
         <View style={styles.grid}>
-          {lots?.map((lot) => <LotCard lot={lot} key={lot.id} onPress={() => router.push({ pathname: '/lot/[id]', params: { id: lot.id, auctionId: id } })} />)}
+          {lots?.map((lot) => <LotCard lot={lot} currency={auction?.currency} key={lot.id} onPress={() => router.push({ pathname: '/lot/[id]', params: { id: lot.id, auctionId: id } })} />)}
           {!lots?.length ? <EmptyState title="No hay lotes" message="No encontramos piezas para este estado." /> : null}
         </View>
       )}
@@ -224,6 +224,7 @@ export function LotDetailScreen() {
   const [authModal, setAuthModal] = useState(false);
   const { session } = useSession();
   const { data: lot, isLoading, isError, refetch } = useQuery({ queryKey: ['lot', id, auctionId], queryFn: () => auctionService.lot(id, auctionId ?? ''), enabled: canLoadLot });
+  const { data: auction } = useQuery({ queryKey: ['auction', auctionId], queryFn: () => auctionService.get(auctionId ?? ''), enabled: !!auctionId });
   if (!auctionId) return <Screen><Header title="Detalle del lote" onBack={back} /><EmptyState title="No se encontró la subasta del lote" message="Volvé al catálogo para abrir esta pieza nuevamente." /></Screen>;
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !lot) return <Screen><Header title="Detalle del lote" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
@@ -249,7 +250,7 @@ export function LotDetailScreen() {
       </Card> : null}
       <Card style={styles.priceCard}>
         <Body muted>Precio base</Body>
-        <Text style={styles.price}>{formatCurrency(lot.basePrice)}</Text>
+        <Text style={styles.price}>{formatCurrency(lot.basePrice, auction?.currency)}</Text>
       </Card>
       <Button label="Ir a pujar" onPress={joinLive} />
       <AuthRequiredModal

@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInUp, ZoomIn, interpolate, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { z } from 'zod';
 
@@ -13,13 +13,12 @@ import { ActionRow, Body, Button, Card, Header, IconButton, InfoTile, Input, Scr
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { useSession } from '@/providers/app-provider';
-import { authService } from '@/services/api';
+import { authService, profileService } from '@/services/api';
 import { errorToUserMessage, getServerConnectionMessage } from '@/services/errors';
 import { ApiError, ApiNetworkError } from '@/services/http';
 import { explainFileAccess, permissionDeniedMessage, requestMediaLibraryPermission } from '@/services/permissions';
 import type { FileUpload } from '@/types/domain';
 
-const resendCooldownSeconds = 30;
 
 function ErrorNotice({ message }: { message: string }) {
   return (
@@ -336,10 +335,16 @@ export function RegisterScreen() {
   const [front, setFront] = useState<FileUpload>();
   const [backImage, setBackImage] = useState<FileUpload>();
   const [apiError, setApiError] = useState('');
+  const [countries, setCountries] = useState<{id: string, name: string}[]>([]);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: '', surname: '', email: '', address: '', country: 'Argentina' },
   });
+  useEffect(() => {
+    profileService.countries().then(setCountries).catch(() => {});
+  }, []);
   async function pick(side: 'front' | 'back') {
     try {
       setApiError('');
@@ -376,7 +381,12 @@ export function RegisterScreen() {
       setRegistration({ email: values.email, returnTo });
       router.push('/registration-pending' as Href);
     } catch (error) {
-      setApiError(messageForAuthError(error, 'No pudimos completar el registro. Revisa tu conexion e intenta nuevamente.'));
+      if (error instanceof ApiError && error.status === 409 || (error as ApiError)?.message?.includes('ya está registrado')) {
+        setRegistration({ email: values.email, returnTo });
+        router.push('/registration-pending' as Href);
+      } else {
+        setApiError(messageForAuthError(error, 'No pudimos completar el registro. Revisa tu conexion e intenta nuevamente.'));
+      }
     }
   });
   return (
@@ -390,7 +400,37 @@ export function RegisterScreen() {
         <Controller control={control} name="surname" render={({ field }) => <Input label="Apellido" value={field.value} onChangeText={field.onChange} error={errors.surname?.message} />} />
         <Controller control={control} name="email" render={({ field }) => <Input label="Mail" value={field.value} onChangeText={field.onChange} keyboardType="email-address" error={errors.email?.message} />} />
         <Controller control={control} name="address" render={({ field }) => <Input label="Domicilio legal" value={field.value} onChangeText={field.onChange} error={errors.address?.message} />} />
-        <Controller control={control} name="country" render={({ field }) => <Input label="País de origen" value={field.value} onChangeText={field.onChange} error={errors.country?.message} />} />
+        <Controller control={control} name="country" render={({ field }) => (
+          <View>
+            <Input
+              label="País de origen"
+              value={countrySearch}
+              onChangeText={(text) => { setCountrySearch(text); setShowCountryDropdown(true); }}
+              onFocus={() => setShowCountryDropdown(true)}
+              error={errors.country?.message}
+            />
+            {showCountryDropdown && (
+              <View style={{ backgroundColor: 'white', borderWidth: 1, borderColor: '#ccc', borderRadius: 8, maxHeight: 200, overflow: 'scroll' }}>
+                {countries
+                  .filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()))
+                  .map(c => (
+                    <Pressable
+                      key={c.id}
+                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}
+                      onPress={() => {
+                        field.onChange(c.id);
+                        setCountrySearch(c.name);
+                        setShowCountryDropdown(false);
+                      }}
+                    >
+                      <Text>{c.name}</Text>
+                    </Pressable>
+                  ))
+                }
+              </View>
+            )}
+          </View>
+        )} />
         <SectionLabel>Documento de identidad</SectionLabel>
         <Body muted>Necesitamos abrir tu galeria para adjuntar frente y dorso del DNI. En computadora se abrira el selector de archivos.</Body>
         <View style={styles.uploadRow}>

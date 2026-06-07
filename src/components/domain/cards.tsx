@@ -6,7 +6,7 @@ import { LotImageCarousel } from '@/components/domain/LotImageCarousel';
 import { colors, fonts, radius, shadow, spacing, typography } from '@/constants/theme';
 import type { Auction, Lot, PaymentMethod, Purchase } from '@/types/domain';
 
-const formatMoney = (value: number) => `USD ${value.toLocaleString('es-AR')}`;
+const formatMoney = (value: number, currency = 'ARS') => `${currency} ${value.toLocaleString('es-AR')}`;
 
 export function AuctionCard({ auction, onPress }: { auction: Auction; onPress: () => void }) {
   const tone = auction.status === 'En vivo' ? 'green' : auction.status === 'Finalizada' ? 'red' : 'purple';
@@ -49,7 +49,7 @@ function MetaPill({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value
   );
 }
 
-export function LotCard({ lot, onPress }: { lot: Lot; onPress: () => void }) {
+export function LotCard({ lot, onPress, currency }: { lot: Lot; onPress: () => void; currency?: string }) {
   return (
     <Pressable onPress={onPress} style={styles.lotCard}>
       <View style={styles.lotMedia}>
@@ -60,7 +60,7 @@ export function LotCard({ lot, onPress }: { lot: Lot; onPress: () => void }) {
         <Text numberOfLines={2} style={styles.lotTitle}>{lot.title}</Text>
         <Text numberOfLines={2} style={styles.meta}>{lot.description}</Text>
         <Text style={styles.meta}>Estado: {lot.status ?? 'disponible'}</Text>
-        <Text style={styles.price}>{formatMoney(lot.basePrice)}</Text>
+        <Text style={styles.price}>{formatMoney(lot.basePrice, currency)}</Text>
       </View>
     </Pressable>
   );
@@ -111,8 +111,8 @@ export function PurchaseCard({ purchase, onPress }: { purchase: Purchase; onPres
   );
 }
 
-export function formatCurrency(amount: number) {
-  return formatMoney(amount);
+export function formatCurrency(amount: number, currency = 'ARS') {
+  return formatMoney(amount, currency);
 }
 
 const styles = StyleSheet.create({
