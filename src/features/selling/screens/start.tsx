@@ -7,6 +7,7 @@ import { DateInput } from '@/components/ui/date-input';
 import { Badge, Body, Button, Card, Divider, Header, IconButton, Input, Screen, SectionHeader, SecurityNote } from '@/components/ui/primitives';
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
+import { useSession } from '@/providers/app-provider';
 import { assetService } from '@/services/api';
 import { errorToUserMessage } from '@/services/errors';
 import { CategoryCard } from '@/features/selling/components/category-card';
@@ -16,6 +17,7 @@ import { categoryOptions, countWords, limitWords, MAX_WORDS } from '@/features/s
 export function SellStartScreen() {
   const router = useRouter();
   const back = useSafeBack();
+  const { session } = useSession();
   const [category, setCategory] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -28,6 +30,19 @@ export function SellStartScreen() {
   const [suggestedPrice, setSuggestedPrice] = useState('');
   const [suggestedCurrency, setSuggestedCurrency] = useState<'ARS' | 'USD'>('ARS');
   const [existingCode, setExistingCode] = useState('');
+  const [attempted, setAttempted] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  const errors = {
+    name: !name.trim() ? 'El nombre es obligatorio' : '',
+    description: !description.trim() ? 'La descripción es obligatoria' : '',
+    amount: !amount || Number(amount) < 1 ? 'Debe ser un número mayor a 0' : '',
+    suggestedPrice: suggestedPrice && Number(suggestedPrice) <= 0 ? 'Debe ser un monto mayor a 0' : '',
+    artist: category === 'objeto_disenador' && !artist.trim() ? 'El diseñador es obligatorio' : '',
+    date: category === 'objeto_disenador' && !date ? 'La fecha es obligatoria'
+      : date && date > new Date().toISOString().slice(0, 10) ? 'Fecha invalida' : '',
+    additional: category === 'otro' && !additional.trim() ? 'La información adicional es obligatoria' : '',
+  };
   const save = useMutation({
     mutationFn: async () => {
       const code = existingCode || (await assetService.start(category)).code;
@@ -42,7 +57,7 @@ export function SellStartScreen() {
       });
       return code;
     },
-    onSuccess: (code) => router.push({ pathname: '/sell/photos', params: { code, name, type: category, amount } }),
+    onSuccess: (code) => router.replace({ pathname: '/sell/photos', params: { code, name, type: category, amount } }),
   });
   return (
     <Screen>
@@ -59,13 +74,13 @@ export function SellStartScreen() {
       {category ? <>
         <WizardHeader current={0} />
         <SectionHeader title="Información operativa" subtitle="Completá los campos principales para iniciar la solicitud" />
-        <Input label="Nombre del bien *" placeholder="Ej. Retrato en óleo" value={name} onChangeText={setName} />
+        <Input label="Nombre del bien *" placeholder="Ej. Retrato en óleo" value={name} onChangeText={setName} error={attempted ? errors.name : ''} />
         <View>
-          <Input label="Descripción técnica *" placeholder="Materiales, medidas y estado" multiline value={description} onChangeText={(t) => setDescription(limitWords(t))} />
+          <Input label="Descripción técnica *" placeholder="Materiales, medidas y estado" multiline value={description} onChangeText={(t) => setDescription(limitWords(t))} error={attempted ? errors.description : ''} />
           <Text style={styles.wordCount}>{countWords(description)}/{MAX_WORDS} palabras</Text>
         </View>
-        <Input label="Cantidad de elementos *" keyboardType="number-pad" value={amount} onChangeText={setAmount} />
-        <Input label="Precio base sugerido (opcional)" keyboardType="number-pad" value={suggestedPrice} onChangeText={setSuggestedPrice} placeholder="Ej. 50000" />
+        <Input label="Cantidad de elementos *" keyboardType="number-pad" value={amount} onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ''))} error={attempted ? errors.amount : ''} />
+        <Input label="Precio base sugerido (opcional)" keyboardType="number-pad" value={suggestedPrice} onChangeText={(t) => setSuggestedPrice(t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))} placeholder="Ej. 50000" error={attempted ? errors.suggestedPrice : ''} />
         <Body muted>Moneda del precio sugerido</Body>
         <View style={styles.currencyToggle}>
           {(['ARS', 'USD'] as const).map((c) => (
@@ -76,7 +91,7 @@ export function SellStartScreen() {
         </View>
         {category === 'obra_arte' ? <>
           <Input label="Artista" value={artist} onChangeText={setArtist} />
-          <DateInput label="Fecha de creación (AAAA-MM-DD)" value={date} onChangeText={setDate} />
+          <DateInput label="Fecha de creación (AAAA-MM-DD)" value={date} onChangeText={setDate} error={date > new Date().toISOString().slice(0, 10) ? 'Fecha invalida' : (attempted ? errors.date : '')} />
           <Input label="Época u origen" value={period} onChangeText={setPeriod} />
           <View>
             <Input label="Historia y procedencia" multiline value={history} onChangeText={(t) => setHistory(limitWords(t))} />
@@ -84,15 +99,29 @@ export function SellStartScreen() {
           </View>
         </> : null}
         {category === 'objeto_disenador' ? <>
-          <Input label="Diseñador *" value={artist} onChangeText={setArtist} />
-          <DateInput label="Fecha de creación (AAAA-MM-DD) *" value={date} onChangeText={setDate} />
+          <Input label="Diseñador *" value={artist} onChangeText={setArtist} error={attempted ? errors.artist : ''} />
+          <DateInput label="Fecha de creación (AAAA-MM-DD) *" value={date} onChangeText={setDate} error={date > new Date().toISOString().slice(0, 10) ? 'Fecha invalida' : (attempted ? errors.date : '')} />
         </> : null}
         {category === 'otro' ? <View>
           <Input label="Información adicional *" value={additional} onChangeText={(t) => setAdditional(limitWords(t))} />
           <Text style={styles.wordCount}>{countWords(additional)}/{MAX_WORDS} palabras</Text>
         </View> : null}
         <Divider />
-        <Button label={save.isPending ? 'Guardando...' : 'Continuar con fotografías'} disabled={!name || !description || Number(amount) <= 0 || save.isPending} onPress={() => save.mutate()} />
+        <Button
+          label={save.isPending ? 'Guardando...' : 'Continuar con fotografías'}
+          disabled={save.isPending}
+          onPress={() => {
+            setAttempted(true);
+            if (Object.values(errors).some(Boolean)) return;
+            if (!session) {
+              setAuthError('Inicia sesion para continuar con fotografias.');
+              return;
+            }
+            setAuthError('');
+            save.mutate();
+          }}
+        />
+        {authError ? <Body muted>{authError}</Body> : null}
         {save.isError ? <Body muted>{errorToUserMessage(save.error, 'No fue posible iniciar la solicitud.')}</Body> : null}
       </> : null}
     </Screen>

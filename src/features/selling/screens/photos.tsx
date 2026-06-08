@@ -22,7 +22,7 @@ export function SellPhotosScreen() {
   const [apiError, setApiError] = useState('');
   const upload = useMutation({
     mutationFn: () => assetService.uploadPhotos(code ?? '', photos),
-    onSuccess: () => router.push({ pathname: '/sell/documents', params: { amount, code, name, type, photos: String(photos.length) } }),
+    onSuccess: () => router.replace({ pathname: '/sell/documents', params: { amount, code, name, type, photos: String(photos.length) } }),
   });
   async function addPhoto() {
     try {

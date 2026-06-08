@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
@@ -13,13 +13,10 @@ import { WizardHeader } from '@/features/selling/components/wizard-header';
 export function SellReviewScreen() {
   const router = useRouter();
   const back = useSafeBack();
-  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ amount: string; code: string; name: string; type: string; photos: string; documents: string }>();
   const confirm = useMutation({
     mutationFn: () => assetService.confirm(params.code ?? ''),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
       router.replace({ pathname: '/sell/success', params: { code: response.codigo_solicitud, status: response.estado } });
     },
   });

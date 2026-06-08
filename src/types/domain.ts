@@ -80,7 +80,10 @@ export interface OwnedAsset {
   title: string;
   category: string;
   status: 'Pendiente' | 'En inspección' | 'Aceptado' | 'Rechazado';
+  depositReceived?: boolean;
   detail: string;
+  rejectionReason?: string;
+  rejectionShippingCost?: number;
   technicalDescription?: string;
   quantity?: number;
   additionalInformation?: string;

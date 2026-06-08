@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Body, Button, ErrorState, Header, Input, LoadingState, Screen, StatusState } from '@/components/ui/primitives';
@@ -8,6 +8,7 @@ import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { chatService } from '@/services/api';
 import { errorToUserMessage } from '@/services/errors';
+import { formatDateTimeLabel } from '@/features/account/utils';
 
 export function ConversationScreen() {
   const back = useSafeBack();
@@ -43,7 +44,7 @@ export function ConversationScreen() {
       {isLoading ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : data?.map((msg) => (
         <View key={msg.id} style={[styles.bubble, msg.author === 'user' && styles.userBubble]}>
           <Text style={[styles.message, msg.author === 'user' && styles.userMessage]}>{msg.text}</Text>
-          <Text style={[styles.time, msg.author === 'user' && styles.userTime]}>{msg.time}</Text>
+          <Text style={[styles.time, msg.author === 'user' && styles.userTime]}>{formatDateTimeLabel(msg.time)}</Text>
         </View>
       ))}
       <View style={styles.compose}>

@@ -14,6 +14,32 @@ export function formatAmountWithCurrency(amount: number, currency?: string | nul
   return `${currency ?? 'ARS'} ${amount.toLocaleString('es-AR')}`;
 }
 
+export function formatDateTimeLabel(value?: string) {
+  if (!value) return '-';
+  const trimmed = value.trim();
+  const plainTimestampMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(trimmed);
+
+  // Backend may return timestamps without timezone. In that case, keep literal clock values
+  // to avoid unintended timezone shifts on clients configured in different regions.
+  if (plainTimestampMatch && !hasTimezone) {
+    const [, year, month, day, hours, minutes] = plainTimestampMatch;
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  const date = new Date(trimmed);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date).replace(',', '');
+}
+
 export function chatIcon(type: string): keyof typeof Ionicons.glyphMap {
   switch (type) {
     case 'soporte': return 'chatbubble-ellipses-outline';

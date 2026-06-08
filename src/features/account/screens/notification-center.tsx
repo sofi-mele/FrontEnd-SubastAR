@@ -7,7 +7,7 @@ import { Badge, Body, Card, EmptyState, ErrorState, Header, LoadingState, Screen
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { chatService } from '@/services/api';
-import { notificationIcon } from '@/features/account/utils';
+import { formatDateTimeLabel, notificationIcon } from '@/features/account/utils';
 
 export function NotificationCenterScreen() {
   const back = useSafeBack();
@@ -21,7 +21,12 @@ export function NotificationCenterScreen() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
-  const hasUnreadNotifications = data?.some((notification) => !notification.read) ?? false;
+  const visibleNotifications = [...(data ?? [])].sort((a, b) => {
+    const first = Date.parse(a.timestamp ?? '');
+    const second = Date.parse(b.timestamp ?? '');
+    return (Number.isNaN(second) ? 0 : second) - (Number.isNaN(first) ? 0 : first);
+  });
+  const hasUnreadNotifications = visibleNotifications.some((notification) => !notification.read);
   useEffect(() => {
     if (hasUnreadNotifications && !markRead.isPending) markRead.mutate();
   }, [hasUnreadNotifications, markRead]);
@@ -29,7 +34,7 @@ export function NotificationCenterScreen() {
     <Screen>
       <Header title="Bot - Notificaciones" onBack={back} />
       <StatusState icon="hardware-chip-outline" title="Centro de avisos de SubastAR" message="Acá vas a encontrar avisos sobre compras, pujas, bienes, pagos y multas." tone="purple" />
-      {isLoading ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : data?.length ? data.map((notification) => (
+      {isLoading ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : visibleNotifications.length ? visibleNotifications.map((notification) => (
         <Card key={notification.id} style={styles.notificationCard}>
           <View style={styles.notificationIconWrap}>
             <Ionicons name={notificationIcon(notification.type)} size={22} color={colors.primary} />
@@ -40,7 +45,7 @@ export function NotificationCenterScreen() {
               {!notification.read ? <Badge label="Nuevo" tone="red" /> : null}
             </View>
             <Body muted>{notification.content}</Body>
-            <Text style={styles.time}>{notification.timestamp}</Text>
+            <Text style={styles.time}>{formatDateTimeLabel(notification.timestamp)}</Text>
           </View>
         </Card>
       )) : <EmptyState title="Sin notificaciones" message="Los avisos importantes aparecerán acá." />}

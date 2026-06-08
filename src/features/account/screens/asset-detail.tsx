@@ -28,6 +28,8 @@ export function AssetDetailScreen() {
   });
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !data) return <Screen><Header title="Detalle del bien" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
+  const rejectionReason = data.rejectionReason ?? data.detail;
+  const showHeaderDetail = data.status !== 'Rechazado' || (data.detail && data.detail !== rejectionReason);
   return (
     <Screen>
       <Header title="Detalle del bien" onBack={back} />
@@ -40,7 +42,7 @@ export function AssetDetailScreen() {
           </View>
           <View style={styles.assetHeroIcon}><Ionicons name="cube-outline" size={24} color={colors.primary} /></View>
         </View>
-        <Body>{data.detail}</Body>
+        {showHeaderDetail ? <Body>{data.detail}</Body> : null}
         <View style={styles.tileRow}>
           <InfoTile icon="albums-outline" label="Fotos" value={data.photosUploaded != null ? String(data.photosUploaded) : 'No asignado'} />
           <InfoTile icon="document-text-outline" label="Documentos" value={data.documentationAttached ? 'Adjunta' : 'No asignado'} tone={data.documentationAttached ? 'green' : 'yellow'} />
@@ -49,13 +51,23 @@ export function AssetDetailScreen() {
         <SummaryRow label="Precio base" value={data.basePrice != null ? formatCurrency(data.basePrice) : 'No asignado'} />
         <SummaryRow label="Comisión" value={data.commission != null ? formatCurrency(data.commission) : 'No asignado'} />
         <SummaryRow label="Depósito" value={data.depositLocation ?? 'No asignado'} />
+        {data.status === 'Rechazado' ? <SummaryRow label="Motivo de rechazo" value={rejectionReason} /> : null}
+        {data.status === 'Rechazado' ? <SummaryRow label="Costo de envío" value={data.rejectionShippingCost != null ? formatCurrency(data.rejectionShippingCost) : 'No informado'} /> : null}
       </Card>
-      {data.status === 'En inspección' ? (
+      {data.status === 'En inspección' && !data.depositReceived ? (
         <StatusState
           icon="cube-outline"
-          title="Bien en camino a inspección"
-          message="La empresa está interesada. Revisá el chat para ver la dirección de envío y enviá el bien físicamente."
+          title="Tu bien fue seleccionado para inspección"
+          message={`La empresa está interesada en tu bien. Debés llevarlo físicamente${data.depositLocation ? ` a ${data.depositLocation}` : ' a la dirección indicada en el chat'}. Tené en cuenta que si el bien no es aceptado tras la inspección presencial, los gastos de devolución corren por tu cuenta.`}
           tone="purple"
+        />
+      ) : null}
+      {data.status === 'En inspección' && data.depositReceived ? (
+        <StatusState
+          icon="checkmark-circle-outline"
+          title="Bien recibido en depósito"
+          message="Tu bien llegó a nuestras instalaciones y está siendo evaluado por nuestros especialistas. Te notificaremos el resultado de la inspección."
+          tone="green"
         />
       ) : null}
       {data.status === 'Aceptado' && data.assignedAuction ? (

@@ -68,8 +68,45 @@ type BackendAsset = {
   comision?: number | null; ubicacion_deposito?: string | null; poliza_id?: string | number | null; descripcion_tecnica?: string | null; cantidad_elementos?: number | null;
   informacion_adicional?: string | null; epoca_origen?: string | null; artista_disenador?: string | null; datos_historicos?: string | null;
   precio_base_sugerido?: number | null; divisa_precio_base_sugerido?: string | null;
+  costo_envio?: number | null; costo_devolucion?: number | null; costo_envio_devolucion?: number | null;
+  costoEnvio?: number | null; costoDevolucion?: number | null; costoEnvioDevolucion?: number | null;
+  costo_de_envio?: number | null; costo_de_envio_devolucion?: number | null;
   fotos_cargadas?: number; documentacion_adjunta?: boolean; acepto_condiciones?: boolean | null; fotos?: BackendAssetPhoto[]; documentos?: BackendAssetDocument[];
 };
+
+function toOptionalNumber(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+  if (typeof value === 'string') {
+    const normalized = value.replace(',', '.').trim();
+    if (!normalized) return undefined;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function extractRejectedShippingCost(asset: BackendAsset): number | undefined {
+  const direct =
+    toOptionalNumber(asset.costo_envio)
+    ?? toOptionalNumber(asset.costo_devolucion)
+    ?? toOptionalNumber(asset.costo_envio_devolucion)
+    ?? toOptionalNumber(asset.costoEnvio)
+    ?? toOptionalNumber(asset.costoDevolucion)
+    ?? toOptionalNumber(asset.costoEnvioDevolucion)
+    ?? toOptionalNumber(asset.costo_de_envio)
+    ?? toOptionalNumber(asset.costo_de_envio_devolucion);
+  if (direct != null) return direct;
+
+  const record = asset as Record<string, unknown>;
+  const dynamicEntry = Object.entries(record).find(([rawKey, rawValue]) => {
+    const key = rawKey.toLowerCase();
+    const mentionsCost = key.includes('costo') || key.includes('coste') || key.includes('shipping');
+    const mentionsShipping = key.includes('envio') || key.includes('devolucion') || key.includes('retorno') || key.includes('flete');
+    return mentionsCost && mentionsShipping && toOptionalNumber(rawValue) != null;
+  });
+  return dynamicEntry ? toOptionalNumber(dynamicEntry[1]) : undefined;
+}
 type BackendPurchase = {
   id: number; nombre_item: string; subasta: string; fecha?: string; valor_pujado: number; multa: number;
   estado_pago: string; estado_entrega: string; costo_envio?: number; total?: number; medio_pago?: string;
@@ -188,12 +225,20 @@ function mapPurchase(purchase: BackendPurchase): Purchase {
 
 function mapAsset(asset: BackendAsset): OwnedAsset {
   const normalizedStatus = asset.estado.toLowerCase();
+  console.log('[mapAsset] raw asset keys:', Object.keys(asset), '| costo_envio:', (asset as Record<string, unknown>)['costo_envio']);
+  const rejectionShippingCost = extractRejectedShippingCost(asset);
+  const detail = normalizedStatus === 'rechazado'
+    ? asset.motivo_rechazo ?? asset.descripcion_tecnica ?? asset.subasta_asignada ?? 'En evaluación'
+    : asset.descripcion_tecnica ?? asset.motivo_rechazo ?? asset.subasta_asignada ?? 'En evaluación';
   return {
     id: String(asset.id),
     title: asset.nombre,
     category: asset.tipo ?? asset.subasta_asignada ?? 'Sin asignar',
-    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : normalizedStatus === 'pendiente_inspeccion' || normalizedStatus === 'en_inspeccion' ? 'En inspección' : 'Pendiente',
-    detail: asset.descripcion_tecnica ?? asset.motivo_rechazo ?? asset.subasta_asignada ?? 'En evaluación',
+    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : normalizedStatus === 'pendiente_inspeccion' || normalizedStatus === 'en_inspeccion' || normalizedStatus === 'en_deposito' ? 'En inspección' : 'Pendiente',
+    depositReceived: normalizedStatus === 'en_deposito',
+    detail,
+    rejectionReason: asset.motivo_rechazo ?? undefined,
+    rejectionShippingCost,
     technicalDescription: asset.descripcion_tecnica ?? undefined,
     quantity: asset.cantidad_elementos ?? undefined,
     additionalInformation: asset.informacion_adicional ?? undefined,
@@ -253,7 +298,7 @@ function titleForNotificationType(type: string) {
   switch (type) {
     case 'compra': return 'Compra';
     case 'multa': return 'Multa';
-    case 'bien': return 'Bien';
+    case 'bien': return 'Aviso';
     case 'poliza': return 'Póliza';
     case 'bot': return 'Aviso';
     default: return 'Notificación';
@@ -528,6 +573,7 @@ export const purchaseService = {
 export const insuranceService = {
   async get(id: string): Promise<InsurancePolicy> {
     const policy = await request<BackendPolicy>(apiRoutes.insurance(id));
+    console.log('[insuranceService] raw:', JSON.stringify(policy));
     return {
       id: policy.numero_poliza, number: policy.numero_poliza, company: policy.aseguradora,
       beneficiary: policy.beneficiario, insuredValue: policy.valor_asegurado, validFrom: policy.vigencia_desde,
@@ -547,13 +593,14 @@ export const assetService = {
   async list(status?: string): Promise<OwnedAsset[]> {
     const statusMap: Record<string, string> = {
       Pendiente: 'en_revision',
-      'En inspección': 'pendiente_inspeccion',
       Aceptado: 'aceptado',
       Rechazado: 'rechazado',
     };
-    const backendStatus = status ? statusMap[status] : undefined;
+    const backendStatus = status && status !== 'En inspección' ? statusMap[status] : undefined;
     const route = backendStatus ? `${apiRoutes.assets}?estado=${backendStatus}` : apiRoutes.assets;
-    return (await request<BackendAsset[]>(route)).map(mapAsset);
+    const all = (await request<BackendAsset[]>(route)).map(mapAsset);
+    if (status === 'En inspección') return all.filter((a) => a.status === 'En inspección');
+    return all;
   },
   async get(id: string): Promise<OwnedAsset> {
     return mapAsset(await request<BackendAsset>(apiRoutes.asset(id)));

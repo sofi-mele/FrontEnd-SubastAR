@@ -4,17 +4,29 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 
+function formatDateValue(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const DateInputImpl = ({
   label = 'Fecha de creación (AAAA-MM-DD)',
   value,
   onChangeText,
+  error,
 }: {
   label?: string;
   value: string;
   onChangeText: (text: string) => void;
+  error?: string;
 }) => {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const todayString = formatDateValue(new Date());
+  const isFuture = !!value && value > todayString;
+  const displayError = isFuture ? 'Fecha invalida' : error;
 
   function openPicker() {
     const input = inputRef.current as any;
@@ -29,7 +41,12 @@ const DateInputImpl = ({
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
-      <Pressable onPress={openPicker} style={({ pressed }) => [styles.trigger, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={label}>
+      <Pressable
+        onPress={openPicker}
+        style={({ pressed }) => [styles.trigger, displayError ? styles.triggerError : undefined, pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
         <View style={styles.copy}>
           <Text style={[styles.value, !value && styles.placeholder]}>{value || 'AAAA-MM-DD'}</Text>
         </View>
@@ -41,11 +58,13 @@ const DateInputImpl = ({
         ref={inputRef}
         type="date"
         value={value}
+        max={todayString}
         onChange={(event) => onChangeText(event.target.value)}
         style={styles.hiddenInput}
         tabIndex={-1}
         aria-hidden="true"
       />
+      {displayError ? <Text style={styles.displayErrorText}>{displayError}</Text> : null}
     </View>
   );
 };
@@ -54,6 +73,8 @@ export { DateInputImpl as DateInput };
 export default DateInputImpl;
 
 const styles = StyleSheet.create({
+  triggerError: { borderColor: colors.danger },
+  displayErrorText: { color: colors.danger, fontSize: 11, marginTop: 4 },
   label: {
     color: colors.text,
     fontFamily: fonts.medium,

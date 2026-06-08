@@ -23,7 +23,7 @@ export function SellDocumentsScreen() {
   const [apiError, setApiError] = useState('');
   const upload = useMutation({
     mutationFn: () => assetService.uploadDocuments(params.code ?? '', declaration, documents),
-    onSuccess: () => router.push({ pathname: '/sell/review', params: { ...params, documents: String(documents.length) } }),
+    onSuccess: () => router.replace({ pathname: '/sell/review', params: { ...params, documents: String(documents.length) } }),
   });
   async function addDocument() {
     try {

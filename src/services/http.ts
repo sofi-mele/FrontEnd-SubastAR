@@ -135,7 +135,7 @@ export async function request<T>(route: string, options?: RequestInit): Promise<
   }
   if (!response.ok) {
     const message = await extractErrorMessage(response);
-    if (response.status === 401 && unauthorizedHandler && !logoutInProgress && !route.includes('/auth/login')) {
+    if (response.status === 401 && token && unauthorizedHandler && !logoutInProgress && !route.includes('/auth/login')) {
       logoutInProgress = true;
       await unauthorizedHandler();
     }
@@ -158,7 +158,7 @@ export async function requestText(route: string, options?: RequestInit): Promise
   }
   if (!response.ok) {
     const message = await extractErrorMessage(response);
-    if (response.status === 401 && unauthorizedHandler && !logoutInProgress && !route.includes('/auth/login')) {
+    if (response.status === 401 && token && unauthorizedHandler && !logoutInProgress && !route.includes('/auth/login')) {
       logoutInProgress = true;
       await unauthorizedHandler();
     }

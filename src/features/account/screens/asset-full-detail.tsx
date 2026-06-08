@@ -12,7 +12,6 @@ import { assetService } from '@/services/api';
 import { errorToUserMessage } from '@/services/errors';
 import { formatAmountWithCurrency, openExternalUrl } from '@/features/account/utils';
 import { LoadingOverlay } from '@/features/account/components/loading-overlay';
-import { SummaryRow } from '@/features/account/components/summary-row';
 
 function AssetField({ label, value }: { label: string; value?: string }) {
   return (
@@ -87,6 +86,8 @@ export function AssetFullDetailScreen() {
 
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !data) return <Screen><Header title="Detalle completo del bien" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
+  const rejectionReason = data.rejectionReason ?? data.detail;
+  const showHeaderDetail = data.status !== 'Rechazado' || (data.detail && data.detail !== rejectionReason);
 
   return (
     <Screen>
@@ -96,11 +97,13 @@ export function AssetFullDetailScreen() {
           <View style={styles.cardHeaderCopy}>
             <Badge label={data.status} tone={data.status === 'Aceptado' ? 'green' : data.status === 'Rechazado' ? 'red' : data.status === 'En inspección' ? 'purple' : 'yellow'} />
             <Text style={styles.cardTitle}>{data.title}</Text>
-            <Body muted>{data.category}</Body>
+            {data.category && data.category !== 'Sin asignar' ? <Body muted>{data.category}</Body> : null}
           </View>
           <View style={styles.assetHeroIcon}><Ionicons name="analytics-outline" size={24} color={colors.primary} /></View>
         </View>
-        <Body>{data.detail}</Body>
+        {showHeaderDetail ? <Body>{data.detail}</Body> : null}
+        {data.status === 'Rechazado' ? <AssetField label="Motivo de rechazo" value={rejectionReason} /> : null}
+        {data.status === 'Rechazado' ? <AssetField label="Costo de envío" value={data.rejectionShippingCost != null ? formatCurrency(data.rejectionShippingCost) : 'No informado'} /> : null}
       </Card>
       <Card style={styles.assetGalleryCard}>
         <SectionHeader title="Galería del bien" subtitle={`${photos.length} imágenes cargadas`} />
