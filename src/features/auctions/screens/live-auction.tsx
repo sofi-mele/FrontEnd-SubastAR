@@ -8,6 +8,7 @@ import { LotImageCarousel } from '@/components/domain/LotImageCarousel';
 import { Body, Button, Card, EmptyState, ErrorState, Header, InfoTile, Input, LoadingState, Screen, SectionHeader, StatusState } from '@/components/ui/primitives';
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
+import { useSession } from '@/providers/app-provider';
 import { auctionService, paymentService } from '@/services/api';
 import { BidHistoryRow } from '@/features/auctions/components/bid-history-row';
 import { formatAuctionMoney, useId } from '@/features/auctions/utils';
@@ -16,13 +17,14 @@ export function LiveAuctionScreen() {
   const router = useRouter();
   const back = useSafeBack();
   const id = useId();
+  const { session } = useSession();
   const [amount, setAmount] = useState('');
   const [paymentId, setPaymentId] = useState('');
   const [lastLotId, setLastLotId] = useState<string>();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['live', id],
     queryFn: () => auctionService.live(id),
-    enabled: !!id,
+    enabled: !!id && !!session,
     refetchInterval: 5000,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
@@ -33,6 +35,13 @@ export function LiveAuctionScreen() {
   useEffect(() => {
     if (data?.lot?.id) setLastLotId(data.lot.id);
   }, [data?.lot?.id]);
+  if (!session) return (
+    <Screen>
+      <Header title="Subasta en vivo" onBack={back} />
+      <StatusState icon="lock-closed-outline" title="Acceso restringido" message="Necesitás iniciar sesión para acceder a las subastas en vivo." tone="yellow" />
+      <Button label="Iniciar sesión" onPress={() => router.replace({ pathname: '/login', params: { returnTo: `/live/${id}` } })} />
+    </Screen>
+  );
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !data) return <Screen><Header title="Subasta en vivo" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
   if (!data.lot) return (

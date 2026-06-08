@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
@@ -7,7 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
 
 import { Body, Button, Card, Header, Input, Screen, SectionLabel, StepIndicator, UploadBox } from '@/components/ui/primitives';
-import { spacing } from '@/constants/theme';
+import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { useSession } from '@/providers/app-provider';
 import { authService, profileService } from '@/services/api';
@@ -18,7 +19,16 @@ import { ErrorNotice } from '@/features/auth/components/error-notice';
 import { registerSchema, registrationSteps } from '@/features/auth/schemas';
 import { messageForAuthError } from '@/features/auth/utils';
 
-function UploadAction({ label, done, onPress }: { label: string; done: boolean; onPress: () => void }) {
+function UploadAction({ label, done, error, onPress }: { label: string; done: boolean; error?: boolean; onPress: () => void }) {
+  if (!done && error) {
+    return (
+      <Pressable onPress={onPress} style={styles.uploadBoxError}>
+        <Ionicons name="camera-outline" size={24} color={colors.primary} />
+        <Text style={styles.uploadBoxTitle}>{label}</Text>
+        <Text style={styles.uploadBoxDesc}>Subir foto</Text>
+      </Pressable>
+    );
+  }
   return <UploadBox label={label} description={done ? 'Imagen cargada' : 'Subir foto'} done={done} icon="camera-outline" onPress={onPress} />;
 }
 
@@ -33,7 +43,9 @@ export function RegisterScreen() {
   const [countries, setCountries] = useState<{id: string, name: string}[]>([]);
   const [countrySearch, setCountrySearch] = useState('');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof registerSchema>>({
+  const [countryError, setCountryError] = useState('');
+  const [dniError, setDniError] = useState('');
+  const { control, handleSubmit, trigger, formState: { errors, isSubmitting } } = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: '', surname: '', email: '', address: '', country: 'Argentina' },
   });
@@ -60,30 +72,47 @@ export function RegisterScreen() {
         };
         if (side === 'front') setFront(upload);
         else setBackImage(upload);
+        setDniError('');
       }
     } catch {
       setApiError(permissionDeniedMessage('gallery'));
     }
   }
-  const submit = handleSubmit(async (values) => {
-    if (!front || !backImage) {
-      setApiError('Adjunta frente y dorso del DNI.');
-      return;
+  const submit = async () => {
+    const formValid = await trigger();
+
+    let manualError = false;
+    if (!countrySearch) {
+      setCountryError('Seleccioná tu país de origen.');
+      manualError = true;
+    } else {
+      setCountryError('');
     }
-    try {
-      setApiError('');
-      await authService.register({ ...values, front, back: backImage });
-      setRegistration({ email: values.email, returnTo });
-      router.push('/registration-pending' as Href);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409 || (error as ApiError)?.message?.includes('ya está registrado')) {
+    if (!front || !backImage) {
+      setDniError('Adjuntá frente y dorso del DNI.');
+      manualError = true;
+    } else {
+      setDniError('');
+    }
+
+    if (!formValid || manualError) return;
+
+    handleSubmit(async (values) => {
+      try {
+        setApiError('');
+        await authService.register({ ...values, front: front!, back: backImage! });
         setRegistration({ email: values.email, returnTo });
         router.push('/registration-pending' as Href);
-      } else {
-        setApiError(messageForAuthError(error, 'No pudimos completar el registro. Revisa tu conexion e intenta nuevamente.'));
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409 || (error as ApiError)?.message?.includes('ya está registrado')) {
+          setRegistration({ email: values.email, returnTo });
+          router.push('/registration-pending' as Href);
+        } else {
+          setApiError(messageForAuthError(error, 'No pudimos completar el registro. Revisa tu conexion e intenta nuevamente.'));
+        }
       }
-    }
-  });
+    })();
+  };
   return (
     <Screen>
       <Header title="Crear cuenta" subtitle="Paso 1 de 4" onBack={goBack} />
@@ -101,7 +130,7 @@ export function RegisterScreen() {
               value={countrySearch}
               onChangeText={(text) => { setCountrySearch(text); setShowCountryDropdown(true); }}
               onFocus={() => setShowCountryDropdown(true)}
-              error={errors.country?.message}
+              error={countryError || errors.country?.message}
             />
             {showCountryDropdown && (
               <View style={{ backgroundColor: 'white', borderWidth: 1, borderColor: '#ccc', borderRadius: 8, maxHeight: 200, overflow: 'scroll' }}>
@@ -114,6 +143,7 @@ export function RegisterScreen() {
                       onPress={() => {
                         field.onChange(c.name);
                         setCountrySearch(c.name);
+                        setCountryError('');
                         setShowCountryDropdown(false);
                       }}
                     >
@@ -128,9 +158,10 @@ export function RegisterScreen() {
         <SectionLabel>Documento de identidad</SectionLabel>
         <Body muted>Necesitamos abrir tu galeria para adjuntar frente y dorso del DNI. En computadora se abrira el selector de archivos.</Body>
         <View style={styles.uploadRow}>
-          <UploadAction label="Frente" done={!!front} onPress={() => pick('front')} />
-          <UploadAction label="Dorso" done={!!backImage} onPress={() => pick('back')} />
+          <UploadAction label="Frente" done={!!front} error={!!dniError} onPress={() => pick('front')} />
+          <UploadAction label="Dorso" done={!!backImage} error={!!dniError} onPress={() => pick('back')} />
         </View>
+        {dniError ? <Text style={styles.errorText}>{dniError}</Text> : null}
         {apiError ? <ErrorNotice message={apiError} /> : null}
         <Button label={isSubmitting ? 'Enviando...' : 'Crear cuenta'} disabled={isSubmitting} onPress={submit} />
         <Button label="¿Ya tienes una cuenta? Iniciá sesión" variant="ghost" onPress={() => router.push({ pathname: '/login', params: { returnTo } })} />
@@ -142,4 +173,8 @@ export function RegisterScreen() {
 const styles = StyleSheet.create({
   formCard: { gap: spacing.md },
   uploadRow: { flexDirection: 'row', gap: spacing.md },
+  uploadBoxError: { flex: 1, minHeight: 110, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.danger, borderRadius: radius.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, padding: spacing.md },
+  uploadBoxTitle: { color: colors.textStrong, fontFamily: fonts.bold, fontSize: typography.bodySmall, textAlign: 'center' },
+  uploadBoxDesc: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: typography.caption, textAlign: 'center' },
+  errorText: { color: colors.danger, fontSize: typography.label, fontFamily: fonts.regular },
 });

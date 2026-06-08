@@ -1,13 +1,13 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Body, Button, Card, Header, Input, Screen, StatusState, Title, UploadBox } from '@/components/ui/primitives';
+import { Badge, Body, Button, Card, Header, Input, Screen, SelectInput, StatusState, Title, UploadBox } from '@/components/ui/primitives';
 import { spacing } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
-import { paymentService } from '@/services/api';
+import { paymentService, profileService } from '@/services/api';
 import { errorToUserMessage } from '@/services/errors';
 import { explainFileAccess, permissionDeniedMessage, requestMediaLibraryPermission } from '@/services/permissions';
 import type { FileUpload, PaymentMethodKind } from '@/types/domain';
@@ -25,6 +25,11 @@ export function PaymentAddScreen() {
   const kind = type ?? 'tarjeta_credito';
   const [bank, setBank] = useState('');
   const [country, setCountry] = useState('Argentina');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [countries, setCountries] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    profileService.countries().then(setCountries).catch(() => {});
+  }, []);
   const [identifier, setIdentifier] = useState('');
   const [amount, setAmount] = useState('');
   const [holder, setHolder] = useState('');
@@ -127,7 +132,32 @@ export function PaymentAddScreen() {
           error={errors.bank}
         />
       ) : null}
-      {kind === 'cuenta_bancaria' ? <Input label="País del banco" value={country} placeholder="Ej: Argentina" onChangeText={setCountry} /> : null}
+      {kind === 'cuenta_bancaria' ? (
+        <View>
+          <SelectInput
+            label="País del banco"
+            value={country}
+            placeholder="Seleccionar país"
+            onPress={() => setShowCountryDropdown(v => !v)}
+          />
+          {showCountryDropdown && (
+            <View style={styles.dropdown}>
+              {countries.map(c => (
+                <Pressable
+                  key={c.id}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setCountry(c.name);
+                    setShowCountryDropdown(false);
+                  }}
+                >
+                  <Text>{c.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : null}
       {kind === 'tarjeta_credito' ? <>
         <Input
           label="Número de tarjeta" value={identifier} keyboardType="number-pad"
@@ -208,4 +238,6 @@ export function PaymentAddScreen() {
 
 const styles = StyleSheet.create({
   itemCard: { gap: spacing.md },
+  dropdown: { backgroundColor: 'white', borderWidth: 1, borderColor: '#ccc', borderRadius: 8, maxHeight: 200, overflow: 'scroll' },
+  dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
 });

@@ -48,7 +48,11 @@ export function LotDetailScreen() {
       </Card> : null}
       <Card style={styles.priceCard}>
         <Body muted>Precio base</Body>
-        <Text style={styles.price}>{formatCurrency(lot.basePrice, auction?.currency)}</Text>
+        {session ? (
+          <Text style={styles.price}>{formatCurrency(lot.basePrice, auction?.currency)}</Text>
+        ) : (
+          <Button label="Iniciá sesión para ver el precio base" variant="ghost" onPress={() => setAuthModal(true)} />
+        )}
       </Card>
       <Button label="Ir a pujar" onPress={joinLive} />
       <AuthRequiredModal

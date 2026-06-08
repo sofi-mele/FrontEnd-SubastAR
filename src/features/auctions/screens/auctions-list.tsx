@@ -12,7 +12,7 @@ export function AuctionsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ status?: string; category?: string; currency?: string }>();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState(params.status ?? 'Todas');
+  const [status, setStatus] = useState(['Finalizada', 'Cerrada'].includes(params.status ?? '') ? 'Todas' : (params.status ?? 'Todas'));
   const category = params.category ?? 'Todas';
   const currency = params.currency ?? 'Todas';
   const { data, isLoading, isError, refetch } = useQuery({
@@ -25,7 +25,7 @@ export function AuctionsScreen() {
       <SearchInput value={search} onChangeText={setSearch} placeholder="Buscar subasta" />
       <SectionHeader title="Estado de subasta" subtitle="Filtrá por disponibilidad y contexto" actionLabel="Filtros" onAction={() => router.push('/auction-filters')} />
       <View style={styles.chips}>
-        {['Todas', 'En vivo', 'Próximas', 'Finalizada'].map((item) => (
+        {['Todas', 'En vivo', 'Próximas'].map((item) => (
           <Chip label={item} active={item === status} onPress={() => setStatus(item)} key={item} />
         ))}
       </View>

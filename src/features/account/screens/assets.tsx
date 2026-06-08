@@ -5,12 +5,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Badge, Button, Card, EmptyState, ErrorState, Header, LoadingState, Screen, SectionHeader, StatusState } from '@/components/ui/primitives';
 import { colors, fonts, spacing, typography } from '@/constants/theme';
+import { useSafeBack } from '@/hooks/use-safe-back';
 import { assetService } from '@/services/api';
 import { FilterTabs } from '@/features/account/components/filter-tabs';
 
 export function AssetsScreen() {
   const router = useRouter();
-  const back = () => router.replace('/(tabs)');
+  const back = useSafeBack();
   const [status, setStatus] = useState('Todos');
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['assets', status], queryFn: () => assetService.list(status) });
   return (
