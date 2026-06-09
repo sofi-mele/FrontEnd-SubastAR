@@ -39,7 +39,7 @@ export function SellReviewScreen() {
       <StatusState icon="document-text-outline" title="Revisión final" message="Al confirmar, la solicitud pasa a revisión de la empresa y queda pendiente de inspección." tone="yellow" />
       <Button label={confirm.isPending ? 'Enviando...' : 'Confirmar'} disabled={confirm.isPending} onPress={() => confirm.mutate()} />
       {confirm.isError ? <Body muted>{errorToUserMessage(confirm.error, 'No fue posible enviar la solicitud.')}</Body> : null}
-      <Button label="Editar bien" variant="secondary" onPress={back} />
+      <Button label="Editar bien" variant="secondary" onPress={() => router.back()} />
       <Button label="Cancelar" variant="ghost" onPress={() => router.replace('/(tabs)')} />
     </Screen>
   );
