@@ -102,7 +102,6 @@ export function validateCardNumber(value: string) {
   if (!digits) return 'Ingresá el número de tarjeta';
   if (!/^\d+$/.test(digits)) return 'Solo se permiten números';
   if (digits.length < 13 || digits.length > 19) return 'El número debe tener entre 13 y 19 dígitos';
-  if (!luhnValid(digits)) return 'Número de tarjeta inválido';
   return '';
 }
 

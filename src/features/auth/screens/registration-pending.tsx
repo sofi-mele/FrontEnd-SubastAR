@@ -2,12 +2,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
-import { Body, Button, Card, Screen, StatusPanel } from '@/components/ui/primitives';
+import { Body, Button, Card, ConfirmationModal, Screen, StatusPanel } from '@/components/ui/primitives';
 import { colors, fonts, spacing, typography } from '@/constants/theme';
 import { useSession } from '@/providers/app-provider';
 import { authService } from '@/services/api';
+import { ApiError } from '@/services/http';
 import { ErrorNotice } from '@/features/auth/components/error-notice';
-import { confirmCancelRegistration, messageForAuthError } from '@/features/auth/utils';
+import { messageForAuthError } from '@/features/auth/utils';
 
 export function RegistrationPendingScreen() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export function RegistrationPendingScreen() {
   const [infoMessage, setInfoMessage] = useState('');
   const [isCancelling, setCancelling] = useState(false);
   const [isResending, setResending] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   async function resendCode() {
     if (!registration?.email) return;
     try {
@@ -25,7 +27,12 @@ export function RegistrationPendingScreen() {
       await authService.resendRegistrationCode(registration.email);
       setInfoMessage('Te enviamos un nuevo código. Revisá tu correo.');
     } catch (error) {
-      setApiError(messageForAuthError(error, 'No fue posible reenviar el código.'));
+      const msg = (error as ApiError)?.message ?? '';
+      if (msg.toLowerCase().includes('no hay') || msg.toLowerCase().includes('pendiente')) {
+        setInfoMessage('Tu solicitud está siendo revisada. Una vez aprobada, recibirás el código por correo.');
+      } else {
+        setApiError(messageForAuthError(error, 'No fue posible reenviar el código.'));
+      }
     } finally {
       setResending(false);
     }
@@ -57,9 +64,18 @@ export function RegistrationPendingScreen() {
         {apiError ? <ErrorNotice message={apiError} /> : null}
         <Button label="Ya recibí mi código" onPress={() => router.push({ pathname: '/verify', params: { email: registration?.email ?? '' } })} />
         <Button label={isResending ? 'Enviando...' : 'No recibí el código'} variant="secondary" disabled={isResending} onPress={resendCode} />
-        <Button label={isCancelling ? 'Cancelando...' : 'Cancelar registro y empezar de nuevo'} variant="secondary" disabled={isCancelling} onPress={() => confirmCancelRegistration(cancelRegistration)} />
+        <Button label={isCancelling ? 'Cancelando...' : 'Cancelar registro y empezar de nuevo'} variant="secondary" disabled={isCancelling} onPress={() => setShowCancelConfirm(true)} />
         <Button label="Volver al acceso" variant="ghost" onPress={() => router.replace('/welcome')} />
       </Card>
+      <ConfirmationModal
+        visible={showCancelConfirm}
+        title="Cancelar registro"
+        message="Esto eliminará tu registro pendiente y vas a poder registrarte nuevamente. ¿Querés continuar?"
+        confirmLabel="Sí, cancelar"
+        pending={isCancelling}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={() => { setShowCancelConfirm(false); cancelRegistration(); }}
+      />
     </Screen>
   );
 }

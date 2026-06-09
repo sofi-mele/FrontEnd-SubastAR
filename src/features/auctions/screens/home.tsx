@@ -16,7 +16,7 @@ export function HomeScreen() {
   const [requiresAuth, setRequiresAuth] = useState(false);
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['auctions', 'featured'], queryFn: () => auctionService.list() });
   const { data: accountState } = useQuery({ queryKey: ['account-state'], queryFn: profileService.accountState, enabled: !!session });
-  const featured = data?.[0];
+  const featured = session ? data?.[0] : data?.find((a) => a.status !== 'En vivo');
   if (accountState?.status === 'Bloqueado') {
     return (
       <Screen>
@@ -38,7 +38,7 @@ export function HomeScreen() {
           </View>
         </View>
         <View style={styles.tileRow}>
-          <InfoTile icon="radio-outline" label="En vivo" value="Ofertá en tiempo real" />
+          {session ? <InfoTile icon="radio-outline" label="En vivo" value="Ofertá en tiempo real" /> : null}
           <InfoTile icon="cube-outline" label="Catálogo" value="Lotes verificados" />
         </View>
       </Card>

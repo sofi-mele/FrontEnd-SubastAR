@@ -104,9 +104,15 @@ export function RegisterScreen() {
         setRegistration({ email: values.email, returnTo });
         router.push('/registration-pending' as Href);
       } catch (error) {
-        if (error instanceof ApiError && error.status === 409 || (error as ApiError)?.message?.includes('ya está registrado')) {
-          setRegistration({ email: values.email, returnTo });
-          router.push('/registration-pending' as Href);
+        const apiErr = error as ApiError;
+        if (apiErr?.status === 409 || apiErr?.message?.includes('ya está registrado')) {
+          const isPending = apiErr?.message?.toLowerCase().includes('pendiente');
+          if (isPending) {
+            setRegistration({ email: values.email, returnTo });
+            router.push('/registration-pending' as Href);
+          } else {
+            setApiError('Este email ya está registrado. Si ya tenés una cuenta, iniciá sesión.');
+          }
         } else {
           setApiError(messageForAuthError(error, 'No pudimos completar el registro. Revisa tu conexion e intenta nuevamente.'));
         }
@@ -119,14 +125,14 @@ export function RegisterScreen() {
       <Card style={styles.formCard}>
         <StepIndicator steps={registrationSteps} current={0} />
         <Body muted>Usamos estos datos para validar tu identidad antes de habilitar pujas y operaciones de venta.</Body>
-        <Controller control={control} name="name" render={({ field }) => <Input label="Nombre" value={field.value} onChangeText={field.onChange} error={errors.name?.message} />} />
-        <Controller control={control} name="surname" render={({ field }) => <Input label="Apellido" value={field.value} onChangeText={field.onChange} error={errors.surname?.message} />} />
-        <Controller control={control} name="email" render={({ field }) => <Input label="Mail" value={field.value} onChangeText={field.onChange} keyboardType="email-address" error={errors.email?.message} />} />
-        <Controller control={control} name="address" render={({ field }) => <Input label="Domicilio legal" value={field.value} onChangeText={field.onChange} error={errors.address?.message} />} />
+        <Controller control={control} name="name" render={({ field }) => <Input label="Nombre *" value={field.value} onChangeText={field.onChange} error={errors.name?.message} />} />
+        <Controller control={control} name="surname" render={({ field }) => <Input label="Apellido *" value={field.value} onChangeText={field.onChange} error={errors.surname?.message} />} />
+        <Controller control={control} name="email" render={({ field }) => <Input label="Mail *" value={field.value} onChangeText={field.onChange} keyboardType="email-address" error={errors.email?.message} />} />
+        <Controller control={control} name="address" render={({ field }) => <Input label="Domicilio legal *" value={field.value} onChangeText={field.onChange} error={errors.address?.message} />} />
         <Controller control={control} name="country" render={({ field }) => (
           <View>
             <Input
-              label="País de origen"
+              label="País de origen *"
               value={countrySearch}
               onChangeText={(text) => { setCountrySearch(text); setShowCountryDropdown(true); }}
               onFocus={() => setShowCountryDropdown(true)}
