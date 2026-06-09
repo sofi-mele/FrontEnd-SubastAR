@@ -7,7 +7,7 @@ import { colors, fonts, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { auctionService } from '@/services/api';
 import { InfoRow } from '@/features/auctions/components/info-row';
-import { useId } from '@/features/auctions/utils';
+import { formatAuctionDate, useId } from '@/features/auctions/utils';
 
 export function AuctionDetailScreen() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export function AuctionDetailScreen() {
           <Body muted>{auction.category}</Body>
         </View>
         <View style={styles.tileRow}>
-          <InfoTile icon="calendar-outline" label="Fecha y hora" value={auction.date} />
+          <InfoTile icon="calendar-outline" label="Fecha y hora" value={formatAuctionDate(auction.date)} />
           <InfoTile icon="cash-outline" label="Moneda" value={auction.currency} />
         </View>
         <Divider />

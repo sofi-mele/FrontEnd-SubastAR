@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { getToken } from '@/services/session-storage';
 import { getServerCommunicationFallback, getServerConnectionMessage, normalizeServerMessage } from '@/services/errors';
 let unauthorizedHandler: undefined | (() => void | Promise<void>);
@@ -14,7 +15,7 @@ export function setNetworkErrorHandler(handler?: () => void | Promise<void>) {
 }
 
 export const apiConfig = {
-  baseUrl: process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8080/api/v1',
+  baseUrl: process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? (Platform.OS === 'android' ? 'http://10.0.2.2:8080/api/v1' : 'http://localhost:8080/api/v1'),
 };
 
 export const apiRoutes = {

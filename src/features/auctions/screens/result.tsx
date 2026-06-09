@@ -8,6 +8,7 @@ import { colors, fonts, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { auctionService } from '@/services/api';
 import { ResultLine } from '@/features/auctions/components/result-line';
+import { formatAuctionDate } from '@/features/auctions/utils';
 
 export function ResultScreen() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export function ResultScreen() {
       {data.won ? <Card style={styles.total}>
         <ResultLine label="Monto abonado" value={data.finalAmount != null ? formatCurrency(data.finalAmount) : 'A confirmar'} />
         <ResultLine label="Medio de pago" value={data.paymentMethod ?? 'Ver en Mis compras'} />
-        <ResultLine label="Fecha" value={data.date ?? 'A confirmar'} />
+        <ResultLine label="Fecha" value={formatAuctionDate(data.date)} />
       </Card> : data.finalAmount != null ? <Text style={styles.resultItem}>{formatCurrency(data.finalAmount)}</Text> : null}
       {data.won ? <Button label="Ir a Mis compras" onPress={() => router.push('/purchases')} /> : null}
       <Button label="Seguir participando en la subasta" variant="secondary" onPress={() => router.replace(`/live/${id}`)} />

@@ -5,6 +5,7 @@ import { Badge, Body, Card } from '@/components/ui/primitives';
 import { LotImageCarousel } from '@/components/domain/LotImageCarousel';
 import { colors, fonts, radius, shadow, spacing, typography } from '@/constants/theme';
 import type { Auction, Lot, PaymentMethod, Purchase } from '@/types/domain';
+import { formatAuctionDate } from '@/features/auctions/utils';
 
 const formatMoney = (value: number, currency = 'ARS') => `${currency} ${value.toLocaleString('es-AR')}`;
 
@@ -23,7 +24,7 @@ export function AuctionCard({ auction, onPress }: { auction: Auction; onPress: (
           <Badge label={auction.status} tone={tone} />
         </View>
         <View style={styles.auctionMetaGrid}>
-          <MetaPill icon="calendar-outline" value={auction.date} />
+          <MetaPill icon="calendar-outline" value={formatAuctionDate(auction.date)} />
           <MetaPill icon="location-outline" value={auction.location} />
           <MetaPill icon="cash-outline" value={auction.currency} />
           <MetaPill icon="albums-outline" value={`${auction.totalLots} lotes`} />
