@@ -1,31 +1,48 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { formatCurrency, PaymentMethodCard } from '@/components/domain/cards';
+import { PaymentMethodCard } from '@/components/domain/cards';
 import { LotImageCarousel } from '@/components/domain/LotImageCarousel';
 import { Body, Button, Card, EmptyState, ErrorState, Header, InfoTile, Input, LoadingState, Screen, SectionHeader, StatusState } from '@/components/ui/primitives';
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { useSession } from '@/providers/app-provider';
 import { auctionService, paymentService } from '@/services/api';
+import { addRealtimeStatusListener, subscribeToAuction, subscribeToUserBidEvents } from '@/services/realtime';
+import type { AuctionRealtimeEvent, Bid } from '@/types/domain';
 import { BidHistoryRow } from '@/features/auctions/components/bid-history-row';
 import { formatAuctionMoney, useId } from '@/features/auctions/utils';
 
+type LiveAuctionData = Awaited<ReturnType<typeof auctionService.live>>;
+
+function bidFromRealtimeEvent(event: AuctionRealtimeEvent): Bid | undefined {
+  if (event.amount == null) return undefined;
+  return {
+    id: event.bidId ?? `${event.timestamp ?? Date.now()}-${event.amount}`,
+    bidder: event.bidder ?? 'Usuario',
+    amount: event.amount,
+    timestamp: event.timestamp ?? new Date().toISOString(),
+  };
+}
+
 export function LiveAuctionScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const back = useSafeBack();
   const id = useId();
   const { session } = useSession();
+  const sessionEmail = session?.profile.email.toLowerCase();
   const [amount, setAmount] = useState('');
   const [paymentId, setPaymentId] = useState('');
   const [lastLotId, setLastLotId] = useState<string>();
+  const [realtimeNotice, setRealtimeNotice] = useState<string>();
+  const [auctionFinished, setAuctionFinished] = useState(false);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['live', id],
     queryFn: () => auctionService.live(id),
     enabled: !!id && !!session,
-    refetchInterval: 5000,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
@@ -35,6 +52,75 @@ export function LiveAuctionScreen() {
   useEffect(() => {
     if (data?.lot?.id) setLastLotId(data.lot.id);
   }, [data?.lot?.id]);
+
+  useEffect(() => {
+    if (!id || !session) return;
+
+    const unsubscribeAuction = subscribeToAuction(id, (event) => {
+      if (event.type === 'AUCTION_FINISHED') {
+        setAuctionFinished(true);
+        void refetch();
+        setRealtimeNotice(event.message ?? 'La subasta finalizo.');
+        return;
+      }
+
+      if (event.type === 'LOT_CHANGED') {
+        setAuctionFinished(false);
+        void refetch();
+        setRealtimeNotice(event.message ?? 'Cambio el lote activo.');
+        return;
+      }
+
+      if (event.type === 'BID_OUTBID') {
+        return;
+      }
+
+      if (event.type !== 'BID_PLACED') return;
+
+      const nextBid = bidFromRealtimeEvent(event);
+      queryClient.setQueryData<LiveAuctionData>(['live', id], (current) => {
+        if (!current) return current;
+        const nextBestBid = event.bestBid ?? event.amount ?? current.bestBid;
+        const hasBid = nextBid ? current.history.some((bid) => bid.id === nextBid.id) : true;
+        const nextHistory = nextBid && !hasBid ? [nextBid, ...current.history].slice(0, 8) : current.history;
+        return {
+          ...current,
+          bestBid: nextBestBid,
+          minBid: event.minBid ?? current.minBid,
+          maxBid: event.maxBid ?? current.maxBid,
+          secondsLeft: event.secondsLeft ?? current.secondsLeft,
+          history: nextHistory,
+        };
+      });
+
+      const isOwnBid = !!event.bidderEmail && event.bidderEmail.toLowerCase() === sessionEmail;
+      setRealtimeNotice(isOwnBid ? 'Tu puja fue registrada.' : event.message ?? 'Nueva mejor oferta recibida.');
+    });
+
+    const unsubscribeUserBidEvents = subscribeToUserBidEvents((event) => {
+      if (event.type !== 'BID_OUTBID') return;
+      if (event.auctionId && event.auctionId !== id) return;
+      setRealtimeNotice(event.message ?? 'Tu oferta fue superada.');
+      void refetch();
+    });
+
+    const unsubscribeStatus = addRealtimeStatusListener((nextStatus) => {
+      if (nextStatus === 'connected') void refetch();
+    });
+
+    return () => {
+      unsubscribeAuction();
+      unsubscribeUserBidEvents();
+      unsubscribeStatus();
+    };
+  }, [id, queryClient, refetch, session, sessionEmail]);
+
+  useEffect(() => {
+    if (!realtimeNotice) return;
+    const timeout = setTimeout(() => setRealtimeNotice(undefined), 4000);
+    return () => clearTimeout(timeout);
+  }, [realtimeNotice]);
+
   if (!session) return (
     <Screen>
       <Header title="Subasta en vivo" onBack={back} />
@@ -44,10 +130,13 @@ export function LiveAuctionScreen() {
   );
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !data) return <Screen><Header title="Subasta en vivo" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
-  if (!data.lot) return (
+  if (auctionFinished || !data.lot) return (
     <Screen>
       <Header title="Subasta en vivo" onBack={back} />
-      <EmptyState title="No hay lote activo" message="El lote finalizó o aún no comenzó." />
+      <EmptyState
+        title={auctionFinished ? 'Subasta finalizada' : 'No hay lote activo'}
+        message={auctionFinished ? 'La subasta finalizo. Consulta el resultado del ultimo lote disponible.' : 'El lote finalizó o aún no comenzó.'}
+      />
       <Button label="Actualizar estado" variant="ghost" onPress={() => refetch()} />
       {lastLotId ? <Button label="Consultar resultado del lote" onPress={() => router.push({ pathname: '/result/[id]', params: { id, itemId: lastLotId } })} /> : null}
     </Screen>
@@ -66,6 +155,12 @@ export function LiveAuctionScreen() {
   return (
     <Screen>
       <Header title="Subasta en vivo" subtitle={auction?.name} onBack={back} />
+      {realtimeNotice ? (
+        <Card style={styles.realtimeNotice}>
+          <Text style={styles.realtimeNoticeTitle}>Actualizacion en vivo</Text>
+          <Body>{realtimeNotice}</Body>
+        </Card>
+      ) : null}
       <Card style={styles.liveBannerCard}>
         <View style={styles.liveBanner}><View style={styles.liveDot} /><Text style={styles.liveText}>EN VIVO</Text><Text style={styles.timer}>00:{data.secondsLeft != null ? String(data.secondsLeft).padStart(2, '0') : '--'}</Text></View>
         <Text style={styles.liveTitle}>{data.lot.title}</Text>
@@ -128,6 +223,8 @@ const styles = StyleSheet.create({
   liveText: { color: colors.danger, fontFamily: fonts.black, flex: 1 },
   timer: { color: colors.danger, fontFamily: fonts.black },
   liveTitle: { color: colors.textStrong, fontSize: typography.heading, fontFamily: fonts.black },
+  realtimeNotice: { backgroundColor: colors.primarySoft, borderColor: colors.primaryBorder },
+  realtimeNoticeTitle: { color: colors.primaryDark, fontFamily: fonts.black, fontSize: typography.body },
   bidPanel: { backgroundColor: colors.surface, borderColor: colors.primaryBorder },
   historyCard: { gap: spacing.sm },
   offer: { color: colors.primaryDark, fontFamily: fonts.black, fontSize: typography.title },
