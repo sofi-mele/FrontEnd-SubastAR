@@ -28,7 +28,6 @@ export function VerifyScreen() {
   const submit = handleSubmit(async ({ code }) => {
     const rawEmail = registration?.email || emailParam || '';
     const email = Array.isArray(rawEmail) ? rawEmail[0] ?? '' : rawEmail;
-    console.log('[VerifyScreen] email para verificar:', email);
     if (!email) {
       setApiError('Volvé a registro para indicar el correo.');
       return;

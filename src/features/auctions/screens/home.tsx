@@ -14,7 +14,11 @@ export function HomeScreen() {
   const router = useRouter();
   const { session } = useSession();
   const [requiresAuth, setRequiresAuth] = useState(false);
-  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['auctions', 'featured'], queryFn: () => auctionService.list() });
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['auctions'],
+    queryFn: () => auctionService.list(),
+    staleTime: 5 * 60 * 1000,
+  });
   const { data: accountState } = useQuery({ queryKey: ['account-state'], queryFn: profileService.accountState, enabled: !!session });
   const featured = session ? data?.[0] : data?.find((a) => a.status !== 'En vivo');
   if (accountState?.status === 'Bloqueado') {

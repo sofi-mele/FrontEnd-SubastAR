@@ -10,8 +10,11 @@ import { setUnauthorizedHandler } from '@/services/http';
 import { appendLocalNotification } from '@/services/local-notifications';
 import { disconnectRealtime, subscribeToUserNotifications } from '@/services/realtime';
 import { readSession, storeSession } from '@/services/session-storage';
+
+const PUBLIC_QUERY_STALE_TIME = 2 * 60 * 1000;
+
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: { queries: { retry: 1, staleTime: PUBLIC_QUERY_STALE_TIME } },
 });
 
 type SessionValue = {

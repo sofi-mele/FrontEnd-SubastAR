@@ -225,7 +225,6 @@ function mapPurchase(purchase: BackendPurchase): Purchase {
 
 function mapAsset(asset: BackendAsset): OwnedAsset {
   const normalizedStatus = asset.estado.toLowerCase();
-  console.log('[mapAsset] raw asset keys:', Object.keys(asset), '| costo_envio:', (asset as Record<string, unknown>)['costo_envio']);
   const rejectionShippingCost = extractRejectedShippingCost(asset);
   const detail = normalizedStatus === 'rechazado'
     ? asset.motivo_rechazo ?? asset.descripcion_tecnica ?? asset.subasta_asignada ?? 'En evaluación'
@@ -573,7 +572,6 @@ export const purchaseService = {
 export const insuranceService = {
   async get(id: string): Promise<InsurancePolicy> {
     const policy = await request<BackendPolicy>(apiRoutes.insurance(id));
-    console.log('[insuranceService] raw:', JSON.stringify(policy));
     return {
       id: policy.numero_poliza, number: policy.numero_poliza, company: policy.aseguradora,
       beneficiary: policy.beneficiario, insuredValue: policy.valor_asegurado, validFrom: policy.vigencia_desde,

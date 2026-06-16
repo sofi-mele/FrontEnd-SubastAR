@@ -13,6 +13,13 @@ type ConnectivityValue = {
 };
 
 const ConnectivityContext = createContext<ConnectivityValue | undefined>(undefined);
+const RECONNECT_QUERY_KEYS = [
+  ['auctions'], // Public auction lists can change while the app is offline.
+  ['notifications-summary'], // Header badges should recover quickly after reconnect.
+  ['profile'], // The current user profile may have changed during the outage.
+  ['user'], // Kept for compatibility if a user-scoped query is introduced.
+  ['account-state'], // Blocking/approval status controls available actions.
+];
 
 export function ConnectivityProvider({ children }: PropsWithChildren) {
   const pathname = usePathname();
@@ -39,7 +46,11 @@ export function ConnectivityProvider({ children }: PropsWithChildren) {
       try {
         const connected = await connectivityService.ping();
         setOffline(!connected);
-        if (connected) await queryClient.invalidateQueries();
+        if (connected) {
+          await Promise.all(
+            RECONNECT_QUERY_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+          );
+        }
         return connected;
       } catch {
         setOffline(true);

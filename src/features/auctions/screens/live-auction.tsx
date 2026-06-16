@@ -43,8 +43,9 @@ export function LiveAuctionScreen() {
     queryKey: ['live', id],
     queryFn: () => auctionService.live(id),
     enabled: !!id && !!session,
+    staleTime: 0,
     refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
   const { data: paymentData } = useQuery({ queryKey: ['payments'], queryFn: paymentService.list });
   const { data: auction } = useQuery({ queryKey: ['auction', id], queryFn: () => auctionService.get(id), enabled: !!id });

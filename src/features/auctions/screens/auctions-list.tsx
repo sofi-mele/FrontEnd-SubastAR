@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AuctionCard } from '@/components/domain/cards';
@@ -14,12 +14,18 @@ export function AuctionsScreen() {
   const { session } = useSession();
   const params = useLocalSearchParams<{ status?: string; category?: string; currency?: string }>();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState(['Finalizada', 'Cerrada'].includes(params.status ?? '') ? 'Todas' : (params.status ?? 'Todas'));
   const category = params.category ?? 'Todas';
   const currency = params.currency ?? 'Todas';
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(search.trim()), 500);
+    return () => clearTimeout(timeout);
+  }, [search]);
+
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['auctions', search, status, category, currency],
-    queryFn: () => auctionService.list({ search, status, category, currency }),
+    queryKey: ['auctions', debouncedSearch, status, category, currency],
+    queryFn: () => auctionService.list({ search: debouncedSearch, status, category, currency }),
   });
   const statusChips = session ? ['Todas', 'En vivo', 'Próximas'] : ['Todas', 'Próximas'];
   const visibleAuctions = session ? data : data?.filter((auction) => auction.status !== 'En vivo');
