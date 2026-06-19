@@ -39,6 +39,7 @@ export function LiveAuctionScreen() {
   const [lastLotId, setLastLotId] = useState<string>();
   const [realtimeNotice, setRealtimeNotice] = useState<string>();
   const [auctionFinished, setAuctionFinished] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['live', id],
     queryFn: () => auctionService.live(id),
@@ -94,6 +95,7 @@ export function LiveAuctionScreen() {
         };
       });
 
+      setSecondsLeft(event.secondsLeft ?? 20);
       const isOwnBid = !!event.bidderEmail && event.bidderEmail.toLowerCase() === sessionEmail;
       setRealtimeNotice(isOwnBid ? 'Tu puja fue registrada.' : event.message ?? 'Nueva mejor oferta recibida.');
     });
@@ -122,6 +124,20 @@ export function LiveAuctionScreen() {
     return () => clearTimeout(timeout);
   }, [realtimeNotice]);
 
+  useEffect(() => {
+    if (data?.secondsLeft != null) {
+      setSecondsLeft(data.secondsLeft);
+    }
+  }, [data?.secondsLeft]);
+
+  useEffect(() => {
+    if (secondsLeft == null || secondsLeft <= 0) return;
+    const interval = setInterval(() => {
+      setSecondsLeft(prev => (prev != null && prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [secondsLeft]);
+
   if (!session) return (
     <Screen>
       <Header title="Subasta en vivo" onBack={back} />
@@ -143,6 +159,13 @@ export function LiveAuctionScreen() {
     </Screen>
   );
   const currency = auction?.currency ?? 'ARS';
+  const currentLeader = data.history[0]?.bidder ?? null;
+  const formatTimer = (seconds: number | null): string => {
+    if (seconds == null) return '--:--';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
   const quickAmounts = [
     { label: 'Mínima', value: data.minBid },
     { label: '+1%', value: Math.max(data.minBid, data.bestBid > 0 ? data.bestBid + data.lot.basePrice * 0.01 : data.minBid) },
@@ -163,11 +186,22 @@ export function LiveAuctionScreen() {
         </Card>
       ) : null}
       <Card style={styles.liveBannerCard}>
-        <View style={styles.liveBanner}><View style={styles.liveDot} /><Text style={styles.liveText}>EN VIVO</Text><Text style={styles.timer}>00:{data.secondsLeft != null ? String(data.secondsLeft).padStart(2, '0') : '--'}</Text></View>
+        <View style={styles.liveBanner}><View style={styles.liveDot} /><Text style={styles.liveText}>EN VIVO</Text><Text style={styles.timer}>{formatTimer(secondsLeft)}</Text></View>
         <Text style={styles.liveTitle}>{data.lot.title}</Text>
         <Body muted>{auction?.location ?? 'Subasta activa'}</Body>
       </Card>
       <LotImageCarousel images={data.lot.images?.length ? data.lot.images : data.lot.image ? [data.lot.image] : undefined} title={data.lot.title} height={300} />
+      {secondsLeft != null && secondsLeft <= 20 && (
+        <View style={styles.timerContainer}>
+          <View style={styles.timerCircle}>
+            <Text style={styles.timerNumber}>{secondsLeft}</Text>
+          </View>
+          <Text style={styles.timerText}>
+            {'¡Últimos segundos!\nSin una nueva puja\nse adjudica a\n'}
+            <Text style={styles.timerBidder}>{currentLeader ?? 'el líder actual'}</Text>
+          </Text>
+        </View>
+      )}
       <Card style={styles.bidPanel}>
         <SectionHeader title="Consola de puja" subtitle="Elegí un monto rápido o ingresalo manualmente" />
         <Body muted>Mejor oferta actual</Body>
@@ -233,4 +267,9 @@ const styles = StyleSheet.create({
   quickBid: { minWidth: '46%', flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryBorder },
   quickBidLabel: { color: colors.primary, fontFamily: fonts.black, fontSize: typography.caption },
   quickBidValue: { color: colors.primaryDark, fontFamily: fonts.bold, fontSize: 10 },
+  timerContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fff', borderRadius: 12, marginHorizontal: 16, marginTop: 8, borderWidth: 1, borderColor: '#e0e0e0' },
+  timerCircle: { width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  timerNumber: { fontSize: 28, fontWeight: 'bold', color: '#1a1a1a' },
+  timerText: { flex: 1, fontSize: 13, color: '#555', lineHeight: 18 },
+  timerBidder: { fontWeight: 'bold', color: '#1a1a1a' },
 });
