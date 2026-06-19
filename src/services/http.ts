@@ -59,6 +59,7 @@ export const apiRoutes = {
   user: '/usuarios/me',
   accountState: '/usuarios/me/estado-cuenta',
   metrics: '/usuarios/me/metricas',
+  lostParticipations: '/usuarios/me/participaciones-perdidas',
   insurance: (id: string) => `/seguros/${id}`,
   extendInsurance: (id: string) => `/seguros/${id}/ampliar`,
   conversations: '/chat/conversaciones',

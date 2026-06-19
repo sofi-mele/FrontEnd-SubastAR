@@ -14,6 +14,7 @@ import type {
   Message,
   NotificationsSummary,
   OwnedAsset,
+  ParticipacionPerdida,
   PaymentMethod,
   PaymentMethodCreate,
   Purchase,
@@ -135,6 +136,11 @@ type BackendAssetSubmission = {
 };
 type BackendCollectionAccount = {
   id: number; nombre_banco: string; cbu_iban: string; pais: string; moneda: 'ARS' | 'USD';
+};
+type BackendParticipacionPerdida = {
+  item_id: number; nombre_producto: string; descripcion: string; precio_base: number;
+  mi_mejor_puja: number; precio_final_venta: number; nombre_ganador?: string;
+  fecha_puja: string; subasta_id: number;
 };
 
 function mapCollectionAccount(account: BackendCollectionAccount): CollectionAccount {
@@ -711,5 +717,21 @@ export const chatService = {
   },
   async markNotificationsRead(types?: string[]) {
     return request<void>(apiRoutes.markNotificationsRead, { method: 'POST', body: JSON.stringify({ tipos: types }) });
+  },
+};
+
+export const lostParticipationService = {
+  async list(): Promise<ParticipacionPerdida[]> {
+    return (await request<BackendParticipacionPerdida[]>(apiRoutes.lostParticipations)).map((item) => ({
+      itemId: item.item_id,
+      nombreProducto: item.nombre_producto,
+      descripcion: item.descripcion,
+      precioBase: item.precio_base,
+      miMejorPuja: item.mi_mejor_puja,
+      precioFinalVenta: item.precio_final_venta,
+      nombreGanador: item.nombre_ganador,
+      fechaPuja: item.fecha_puja,
+      subastaId: item.subasta_id,
+    }));
   },
 };

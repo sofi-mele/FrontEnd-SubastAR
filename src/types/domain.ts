@@ -293,6 +293,18 @@ export interface AssetDetailsInput {
   suggestedBasePriceCurrency?: string;
 }
 
+export interface ParticipacionPerdida {
+  itemId: number;
+  nombreProducto: string;
+  descripcion: string;
+  precioBase: number;
+  miMejorPuja: number;
+  precioFinalVenta: number;
+  nombreGanador?: string;
+  fechaPuja: string;
+  subastaId: number;
+}
+
 export interface InsurancePolicy {
   id?: string;
   number: string;
