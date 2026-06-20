@@ -1,0 +1,35 @@
+{
+  "name": "SubastAR",
+  "short_name": "SubastAR",
+  "description": "SubastAR: subastas en vivo. Pujá, vendé y seguí tus participaciones desde cualquier dispositivo.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "background_color": "#FAF8FF",
+  "theme_color": "#5C4ACF",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

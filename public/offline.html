@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#5C4ACF" />
+    <title>SubastAR · Sin conexión</title>
+    <link rel="icon" href="/favicon.png" />
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background-color: #FAF8FF;
+        color: #171B27;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        text-align: center;
+      }
+      .card { max-width: 360px; }
+      img { width: 96px; height: 96px; margin-bottom: 24px; }
+      h1 { font-size: 22px; margin: 0 0 12px; color: #302477; }
+      p { font-size: 15px; line-height: 1.5; margin: 0 0 24px; color: #6F7381; }
+      button {
+        appearance: none;
+        border: none;
+        background-color: #5C4ACF;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        padding: 14px 28px;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      button:active { background-color: #442EB6; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="/icons/icon-192.png" alt="SubastAR" />
+      <h1>Estás sin conexión</h1>
+      <p>No pudimos cargar el contenido. Revisá tu conexión a internet e intentá de nuevo.</p>
+      <button onclick="location.reload()">Reintentar</button>
+    </div>
+  </body>
+</html>
