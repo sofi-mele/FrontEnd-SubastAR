@@ -11,7 +11,7 @@ al backend.
 | --- | --- |
 | `public/index.html` | Plantilla HTML que Expo usa para `output: "single"`. Incluye `<link rel="manifest">`, `theme-color`, metadatos iOS, `apple-touch-icon` y el registro del service worker. Expo inyecta el bundle JS automáticamente (placeholders `%WEB_TITLE%` / `%LANG_ISO_CODE%`). |
 | `public/manifest.json` | Manifest de la PWA (name, short_name, description, start_url, scope, display standalone, colores e íconos 192/512 + maskable). Accesible en `/manifest.json`. |
-| `public/sw.js` | Service worker: precache del shell, cache-first para estáticos, network-first para navegaciones con fallback a `/offline.html`, y auto-update (`skipWaiting` + `clients.claim`). Ignora requests cross-origin (backend/API intactos). |
+| `public/sw.js` | Service worker: precache del shell + íconos, network-first para navegaciones con fallback a `/offline.html`, cache-first solo para imágenes/íconos same-origin, y auto-update (`skipWaiting` + `clients.claim`). **No** intercepta fuentes/JS/CSS (evita el bug de doble-descompresión que rompía las `.ttf`). Ignora requests cross-origin (backend/API intactos). |
 | `public/offline.html` | Página de fallback offline mínima y con la marca. |
 | `public/favicon.png` | Favicon servido en la raíz. |
 | `public/icons/icon-192.png` | Ícono 192×192 (`purpose: any`). |
