@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Badge, Body, Button, Card, Divider, ErrorState, Header, InfoTile, LoadingState, Screen, Title } from '@/components/ui/primitives';
-import { colors, fonts, spacing, typography } from '@/constants/theme';
+import { colors, fonts, spacing } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { auctionService } from '@/services/api';
 import { InfoRow } from '@/features/auctions/components/info-row';
@@ -38,7 +38,7 @@ export function AuctionDetailScreen() {
         <Text style={styles.bigNumber}>{auction.totalLots}</Text>
       </Card>
       <Button label="Ver catálogo" onPress={() => router.push(`/auction/${id}/catalog`)} />
-      {auction.status === 'En vivo' ? <Button label="Ir a pujar" onPress={() => router.push(`/live/${id}`)} /> : null}
+      {auction.status === 'En vivo' ? <Button label="Entrar a subasta en vivo" onPress={() => router.push(`/live/${id}`)} /> : null}
     </Screen>
   );
 }

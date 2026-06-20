@@ -39,7 +39,6 @@ export function LiveAuctionScreen() {
   const bidMutation = useMutation({
     mutationFn: () => auctionService.bid(id, Number(amount), paymentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['live', id] });
       queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
       queryClient.invalidateQueries({ queryKey: ['chats'] });
     },
@@ -47,7 +46,7 @@ export function LiveAuctionScreen() {
   const [lastLotId, setLastLotId] = useState<string>();
   const [realtimeNotice, setRealtimeNotice] = useState<string>();
   const [auctionFinished, setAuctionFinished] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [displaySecondsLeft, setDisplaySecondsLeft] = useState<number>();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['live', id],
     queryFn: () => auctionService.live(id),
@@ -69,6 +68,7 @@ export function LiveAuctionScreen() {
     const unsubscribeAuction = subscribeToAuction(id, (event) => {
       if (event.type === 'AUCTION_FINISHED') {
         setAuctionFinished(true);
+        setDisplaySecondsLeft(0);
         void refetch();
         setRealtimeNotice(event.message ?? 'La subasta finalizo.');
         return;
@@ -76,8 +76,10 @@ export function LiveAuctionScreen() {
 
       if (event.type === 'LOT_CHANGED') {
         setAuctionFinished(false);
+        setAmount('');
+        setRealtimeNotice(undefined);
+        setDisplaySecondsLeft(undefined);
         void refetch();
-        setRealtimeNotice(event.message ?? 'Cambio el lote activo.');
         return;
       }
 
@@ -103,7 +105,7 @@ export function LiveAuctionScreen() {
         };
       });
 
-      setSecondsLeft(event.secondsLeft ?? 20);
+      setDisplaySecondsLeft(event.secondsLeft ?? 30);
       const isOwnBid = !!event.bidderEmail && event.bidderEmail.toLowerCase() === sessionEmail;
       setRealtimeNotice(isOwnBid ? 'Tu puja fue registrada.' : event.message ?? 'Nueva mejor oferta recibida.');
     });
@@ -112,7 +114,7 @@ export function LiveAuctionScreen() {
       if (event.type !== 'BID_OUTBID') return;
       if (event.auctionId && event.auctionId !== id) return;
       setRealtimeNotice(event.message ?? 'Tu oferta fue superada.');
-      void refetch();
+      if (event.secondsLeft != null) setDisplaySecondsLeft(event.secondsLeft);
     });
 
     const unsubscribeStatus = addRealtimeStatusListener((nextStatus) => {
@@ -134,17 +136,19 @@ export function LiveAuctionScreen() {
 
   useEffect(() => {
     if (data?.secondsLeft != null) {
-      setSecondsLeft(data.secondsLeft);
+      setDisplaySecondsLeft(data.secondsLeft);
     }
   }, [data?.secondsLeft]);
 
   useEffect(() => {
-    if (secondsLeft == null || secondsLeft <= 0) return;
     const interval = setInterval(() => {
-      setSecondsLeft(prev => (prev != null && prev > 0 ? prev - 1 : 0));
+      setDisplaySecondsLeft((current) => {
+        if (current == null || current <= 0) return current;
+        return current - 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, [secondsLeft]);
+  }, []);
 
   if (!session) return (
     <Screen>
@@ -168,8 +172,8 @@ export function LiveAuctionScreen() {
   );
   const currency = auction?.currency ?? 'ARS';
   const currentLeader = data.history[0]?.bidder ?? null;
-  const formatTimer = (seconds: number | null): string => {
-    if (seconds == null) return '--:--';
+  const formatTimer = (seconds?: number): string => {
+    if (seconds == null) return '00:--';
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
@@ -194,19 +198,20 @@ export function LiveAuctionScreen() {
         </Card>
       ) : null}
       <Card style={styles.liveBannerCard}>
-        <View style={styles.liveBanner}><View style={styles.liveDot} /><Text style={styles.liveText}>EN VIVO</Text><Text style={styles.timer}>{formatTimer(secondsLeft)}</Text></View>
+        <View style={styles.liveBanner}><View style={styles.liveDot} /><Text style={styles.liveText}>EN VIVO</Text><Text style={styles.timer}>{formatTimer(displaySecondsLeft)}</Text></View>
         <Text style={styles.liveTitle}>{data.lot.title}</Text>
         <Body muted>{auction?.location ?? 'Subasta activa'}</Body>
+        {displaySecondsLeft === 0 ? <Text style={styles.timerWaiting}>Tiempo finalizado. Esperando confirmación del backend...</Text> : null}
       </Card>
       <LotImageCarousel images={data.lot.images?.length ? data.lot.images : data.lot.image ? [data.lot.image] : undefined} title={data.lot.title} height={300} />
-      {secondsLeft != null && secondsLeft <= 20 && (
+      {displaySecondsLeft != null && displaySecondsLeft > 0 && displaySecondsLeft <= 20 && (
         <View style={styles.timerContainer}>
           <View style={styles.timerCircle}>
-            <Text style={styles.timerNumber}>{secondsLeft}</Text>
+            <Text style={styles.timerNumber}>{displaySecondsLeft}</Text>
           </View>
           <Text style={styles.timerText}>
-            {'¡Últimos segundos!\nSin una nueva puja\nse adjudica a\n'}
-            <Text style={styles.timerBidder}>{currentLeader ?? 'el líder actual'}</Text>
+            {'Últimos segundos. El backend confirmará el cierre del lote.'}
+            {currentLeader ? <Text style={styles.timerBidder}>{`\nOferta líder: ${currentLeader}`}</Text> : null}
           </Text>
         </View>
       )}
@@ -265,6 +270,7 @@ const styles = StyleSheet.create({
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger },
   liveText: { color: colors.danger, fontFamily: fonts.black, flex: 1 },
   timer: { color: colors.danger, fontFamily: fonts.black },
+  timerWaiting: { color: colors.danger, fontFamily: fonts.bold, fontSize: typography.caption },
   liveTitle: { color: colors.textStrong, fontSize: typography.heading, fontFamily: fonts.black },
   realtimeNotice: { backgroundColor: colors.primarySoft, borderColor: colors.primaryBorder },
   realtimeNoticeTitle: { color: colors.primaryDark, fontFamily: fonts.black, fontSize: typography.body },
