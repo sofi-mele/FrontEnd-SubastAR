@@ -20,7 +20,7 @@ export function HomeScreen() {
     staleTime: 5 * 60 * 1000,
   });
   const { data: accountState } = useQuery({ queryKey: ['account-state'], queryFn: profileService.accountState, enabled: !!session });
-  const featured = session ? data?.[0] : data?.find((a) => a.status !== 'En vivo');
+  const featured = data?.find((a) => a.status === 'En vivo') ?? data?.find((a) => a.status === 'Próximas');
   if (accountState?.status === 'Bloqueado') {
     return (
       <Screen>

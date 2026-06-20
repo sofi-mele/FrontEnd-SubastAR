@@ -28,7 +28,7 @@ export function AuctionsScreen() {
     queryFn: () => auctionService.list({ search: debouncedSearch, status, category, currency }),
   });
   const statusChips = session ? ['Todas', 'En vivo', 'Próximas'] : ['Todas', 'Próximas'];
-  const visibleAuctions = session ? data : data?.filter((auction) => auction.status !== 'En vivo');
+  const visibleAuctions = (session ? data : data?.filter((a) => a.status !== 'En vivo'))?.filter((a) => a.status !== 'Finalizada');
   return (
     <Screen>
       <Header title="Subastas" right={<IconButton icon="options-outline" accessibilityLabel="Filtros" tone="primary" onPress={() => router.push('/auction-filters')} />} />

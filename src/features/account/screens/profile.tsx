@@ -39,8 +39,6 @@ export function ProfileScreen() {
         <Divider />
         <ActionRow icon="time-outline" label="Historial" onPress={() => router.push('/profile/history')} />
         <Divider />
-        <ActionRow icon="trending-down-outline" label="Participaciones perdidas" onPress={() => router.push('/profile/lost-participations')} />
-        <Divider />
         <ActionRow icon="stats-chart-outline" label="Métricas" onPress={() => router.push('/profile/metrics')} />
         <Divider />
         <ActionRow icon="cube-outline" label="Mis bienes" onPress={() => router.push('/profile/assets')} />
