@@ -24,8 +24,9 @@ export function ProfileScreen() {
         <View style={styles.avatar}><Text style={styles.avatarText}>{profile.name[0]}</Text></View>
         <Body muted>{profile.email}</Body>
         <Badge label={`Categoría ${profile.category}`} />
+        {accountState?.status === 'Multado' ? <Badge label="Cuenta Multada" tone="red" /> : null}
         <View style={styles.tileRow}>
-          <InfoTile icon="person-outline" label="Estado" value={accountState?.status ?? profile.status} tone={accountState?.status === 'Regular' ? 'green' : accountState?.status === 'Bloqueado' ? 'red' : 'yellow'} />
+          <InfoTile icon="person-outline" label="Estado" value={accountState?.status ?? profile.status} tone={accountState?.status === 'Regular' ? 'green' : accountState?.status === 'Bloqueado' || accountState?.status === 'Multado' ? 'red' : 'yellow'} />
           <InfoTile icon="shield-checkmark-outline" label="Categoría" value={profile.category} />
         </View>
         <SecurityNote text="Usamos tus datos para validar pujas, pagos y accesos de forma segura." />
