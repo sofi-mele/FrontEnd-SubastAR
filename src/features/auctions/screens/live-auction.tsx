@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -36,6 +36,14 @@ export function LiveAuctionScreen() {
   const sessionEmail = session?.profile.email.toLowerCase();
   const [amount, setAmount] = useState('');
   const [paymentId, setPaymentId] = useState('');
+  const bidMutation = useMutation({
+    mutationFn: () => auctionService.bid(id, Number(amount), paymentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['live', id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
   const [lastLotId, setLastLotId] = useState<string>();
   const [realtimeNotice, setRealtimeNotice] = useState<string>();
   const [auctionFinished, setAuctionFinished] = useState(false);
@@ -233,9 +241,9 @@ export function LiveAuctionScreen() {
           </>
         )}
         <Button
-          label="Pujar ahora"
-          disabled={!paymentId || !amount.trim() || !Number.isFinite(amountValue) || amountValue < data.minBid}
-          onPress={() => router.push(`/live/${id}/confirm?amount=${encodeURIComponent(amount)}&paymentId=${encodeURIComponent(paymentId)}&itemId=${data.lot?.id}`)}
+          label={bidMutation.isPending ? 'Enviando...' : 'Pujar ahora'}
+          disabled={bidMutation.isPending || !paymentId || !amount.trim() || !Number.isFinite(amountValue) || amountValue < data.minBid}
+          onPress={() => bidMutation.mutate()}
         />
       </Card>
       <SectionHeader title="Historial de pujas" subtitle="Últimas ofertas registradas" />
