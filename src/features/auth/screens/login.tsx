@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 
-import { Body, Button, Card, Header, Input, Screen, StatusPanel } from '@/components/ui/primitives';
+import { Body, Button, Card, Header, IconButton, Input, Screen, StatusPanel } from '@/components/ui/primitives';
 import { spacing } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { useSession } from '@/providers/app-provider';
@@ -22,6 +22,7 @@ export function LoginScreen() {
   const { enterAsGuest, signIn, setRegistration } = useSession();
   const [apiError, setApiError] = useState('');
   const [pendingRevisionEmail, setPendingRevisionEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -58,7 +59,14 @@ export function LoginScreen() {
           <Input label="Correo electrónico" keyboardType="email-address" autoCapitalize="none" value={value} onChangeText={onChange} error={errors.email?.message} />
         )} />
         <Controller control={control} name="password" render={({ field: { onChange, value } }) => (
-          <Input label="Contraseña" secureTextEntry value={value} onChangeText={onChange} error={errors.password?.message} />
+          <Input
+            label="Contraseña"
+            secureTextEntry={!showPassword}
+            value={value}
+            onChangeText={onChange}
+            error={errors.password?.message}
+            right={<IconButton icon={showPassword ? 'eye-off-outline' : 'eye-outline'} accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} onPress={() => setShowPassword((v) => !v)} />}
+          />
         )} />
         {apiError ? <ErrorNotice message={apiError} /> : null}
         {pendingRevisionEmail ? <Button label="Ver estado de mi registro" variant="secondary" onPress={() => { setRegistration({ email: pendingRevisionEmail }); router.push('/registration-pending' as Href); }} /> : null}
