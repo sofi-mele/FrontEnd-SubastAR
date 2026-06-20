@@ -15,14 +15,16 @@ import { AppProvider } from '@/providers/app-provider';
 NativeSplashScreen.setOptions({ duration: 700, fade: true });
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Roboto_400Regular,
     Roboto_500Medium,
     Roboto_700Bold,
     Roboto_900Black,
   });
 
-  if (!fontsLoaded) return null;
+  // Renderizamos cuando las fuentes cargaron O si fallaron (p. ej. en web): así la app
+  // nunca queda en blanco; en ese caso se usa la fuente del sistema como fallback.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

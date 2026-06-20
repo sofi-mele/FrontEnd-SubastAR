@@ -1,11 +1,15 @@
 /* SubastAR PWA service worker.
- * - Precarga el shell de la app y assets básicos.
- * - Cache-first para estáticos (carga más rápida y soporte offline mínimo).
- * - Network-first para navegaciones, con fallback al shell y a /offline.html.
- * - Auto-update: skipWaiting + clients.claim para activar la versión nueva.
- * IMPORTANTE: nunca intercepta requests cross-origin (API / backend quedan intactos).
+ * Diseño conservador para no romper la carga de la app:
+ *  - Precarga el shell y los íconos.
+ *  - Navegaciones: network-first con fallback al shell cacheado y a /offline.html.
+ *  - Imágenes/íconos same-origin: cache-first (no usan Content-Encoding, son seguros).
+ *  - NO intercepta fuentes (.ttf/.woff), JS ni CSS: el navegador ya los cachea por HTTP
+ *    y son hash-inmutables. Evita el bug de doble-descompresión (Content-Encoding) que
+ *    produce "Failed to decode font".
+ *  - Nunca toca requests cross-origin (backend / API quedan intactos).
+ *  - Solo cachea respuestas válidas (response.ok).
  */
-const CACHE = 'subastar-static-v1';
+const CACHE = 'subastar-static-v2';
 const PRECACHE = [
   '/',
   '/offline.html',
@@ -19,9 +23,7 @@ const PRECACHE = [
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE).catch(() => {}))
-  );
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE).catch(() => {})));
 });
 
 self.addEventListener('activate', (event) => {
@@ -37,6 +39,10 @@ self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
+function isCacheableImage(pathname) {
+  return /\.(?:png|jpe?g|svg|gif|webp|avif|ico)$/.test(pathname);
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -45,35 +51,39 @@ self.addEventListener('fetch', (event) => {
   // No tocar otros orígenes (backend / API / CDN externos).
   if (url.origin !== self.location.origin) return;
 
-  // Navegaciones (rutas SPA): network-first con fallback al shell y offline.
+  // Navegaciones (rutas SPA): network-first con fallback al shell y a offline.
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('/', copy)).catch(() => {});
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put('/', copy)).catch(() => {});
+          }
           return res;
         })
         .catch(() =>
           caches
-            .match(req)
-            .then((r) => r || caches.match('/'))
+            .match('/')
             .then((r) => r || caches.match('/offline.html'))
         )
     );
     return;
   }
 
-  // Estáticos: cache-first y se completa con la red.
-  if (/\.(?:js|css|png|jpe?g|svg|gif|webp|avif|woff2?|ttf|otf|eot|ico|json|map)$/.test(url.pathname)) {
+  // Solo imágenes/íconos same-origin: cache-first. (Fuentes, JS y CSS quedan a cargo
+  // del navegador para evitar problemas de Content-Encoding.)
+  if (isCacheableImage(url.pathname)) {
     event.respondWith(
       caches.match(req).then(
         (cached) =>
           cached ||
           fetch(req)
             .then((res) => {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+              if (res && res.ok && res.type === 'basic') {
+                const copy = res.clone();
+                caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+              }
               return res;
             })
             .catch(() => cached)

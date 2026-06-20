@@ -66,8 +66,25 @@
         // Puertos del servidor de desarrollo de Expo (Metro / webpack legacy).
         var isExpoDevServer = location.port === '8081' || location.port === '19006';
         if (isExpoDevServer) return;
+
+        // Auto-recuperación: cuando un service worker nuevo toma control (p. ej. al pasar
+        // de una versión vieja con cache dañada a la nueva), recargamos una sola vez para
+        // que se sirvan los assets frescos.
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+
         window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function () {});
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(function (reg) {
+              // Fuerza un chequeo de actualización para adoptar el SW nuevo cuanto antes.
+              reg.update();
+            })
+            .catch(function () {});
         });
       })();
     </script>
