@@ -33,9 +33,10 @@ export function PurchaseDetailScreen() {
         </View>
         <Divider />
         <SummaryRow label="Valor pujado" value={formatCurrency(data.amount)} />
-        <SummaryRow label="Cargos y comisión" value={formatCurrency(data.fee)} />
+        {data.fee > 0 ? <SummaryRow label="Comisión" value={formatCurrency(data.fee)} /> : null}
+        {data.penalty > 0 ? <SummaryRow label="Multa" value={formatCurrency(data.penalty)} /> : null}
         {data.shippingCost != null ? <SummaryRow label="Envío" value={formatCurrency(data.shippingCost)} /> : null}
-        <SummaryRow label="Total" value={formatCurrency(data.total ?? data.amount + data.fee)} bold />
+        <SummaryRow label="Total" value={formatCurrency(data.total ?? data.amount + data.fee + data.penalty + (data.shippingCost ?? 0))} bold />
       </Card>
       <Card style={styles.itemCard}>
         <Badge label={data.deliveryStatus} tone="green" />

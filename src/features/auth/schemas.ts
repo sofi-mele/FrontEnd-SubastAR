@@ -8,10 +8,6 @@ export const loginSchema = z.object({
   password: z.string().min(6, 'Mínimo 6 caracteres.'),
 });
 
-export const login2faSchema = z.object({
-  code: z.string().min(4, 'Ingresá el código recibido.').max(8, 'Código demasiado largo.'),
-});
-
 export const registerSchema = z.object({
   name: z.string().min(2, 'Ingresá tu nombre.'),
   surname: z.string().min(2, 'Ingresá tu apellido.'),

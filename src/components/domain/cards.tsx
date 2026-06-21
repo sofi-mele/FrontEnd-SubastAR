@@ -98,10 +98,11 @@ export function PurchaseCard({ purchase, onPress }: { purchase: Purchase; onPres
           </View>
           <Badge label={purchase.paymentStatus} tone={paymentTone} />
         </View>
-        <Text style={styles.price}>{formatMoney(purchase.total ?? purchase.amount + purchase.fee)}</Text>
+        <Text style={styles.price}>{formatMoney(purchase.total ?? purchase.amount + purchase.fee + purchase.penalty)}</Text>
         <View style={styles.purchaseSummary}>
           <MetaPill icon="cash-outline" value={formatMoney(purchase.amount)} />
-          <MetaPill icon="receipt-outline" value={formatMoney(purchase.fee)} />
+          {purchase.fee > 0 ? <MetaPill icon="receipt-outline" value={formatMoney(purchase.fee)} /> : null}
+          {purchase.penalty > 0 ? <MetaPill icon="alert-circle-outline" value={formatMoney(purchase.penalty)} /> : null}
         </View>
         <View style={styles.cardFooter}>
           <Body muted>{purchase.deliveryStatus}</Body>

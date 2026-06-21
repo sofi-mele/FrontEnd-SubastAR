@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { getToken } from '@/services/session-storage';
 import { getServerCommunicationFallback, getServerConnectionMessage, normalizeServerMessage } from '@/services/errors';
 let unauthorizedHandler: undefined | (() => void | Promise<void>);
@@ -15,13 +14,11 @@ export function setNetworkErrorHandler(handler?: () => void | Promise<void>) {
 }
 
 export const apiConfig = {
-  baseUrl: process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? (Platform.OS === 'android' ? 'http://10.0.2.2:8080/api/v1' : 'http://localhost:8080/api/v1'),
+  baseUrl: process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, '') ?? '',
 };
 
 export const apiRoutes = {
   login: '/auth/login',
-  loginVerify2fa: '/auth/login/verificar-2fa',
-  loginResend2fa: '/auth/login/reenviar-2fa',
   healthPing: '/health/ping',
   register: '/auth/registro',
   registerResendCode: '/auth/reenviar-codigo',
@@ -124,6 +121,9 @@ async function extractErrorMessage(response: Response): Promise<string> {
 }
 
 export async function request<T>(route: string, options?: RequestInit): Promise<T> {
+  if (!apiConfig.baseUrl) {
+    throw new ApiNetworkError('EXPO_PUBLIC_API_URL no está configurada.');
+  }
   const token = await getToken();
   const headers = new Headers(options?.headers);
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -148,6 +148,9 @@ export async function request<T>(route: string, options?: RequestInit): Promise<
 }
 
 export async function requestText(route: string, options?: RequestInit): Promise<string> {
+  if (!apiConfig.baseUrl) {
+    throw new ApiNetworkError('EXPO_PUBLIC_API_URL no está configurada.');
+  }
   const token = await getToken();
   const headers = new Headers(options?.headers);
   if (token) headers.set('Authorization', `Bearer ${token}`);

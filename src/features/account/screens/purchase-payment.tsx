@@ -3,13 +3,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable } from 'react-native';
 
-import { PaymentMethodCard } from '@/components/domain/cards';
+import { formatCurrency, PaymentMethodCard } from '@/components/domain/cards';
 import { Body, Button, EmptyState, ErrorState, Header, LoadingState, Screen, SectionHeader, Title } from '@/components/ui/primitives';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { paymentService, purchaseService } from '@/services/api';
 import { errorToUserMessage } from '@/services/errors';
 import { SummaryRow } from '@/features/account/components/summary-row';
-import { formatCurrency } from '@/components/domain/cards';
 
 export function PurchasePaymentScreen() {
   const router = useRouter();
@@ -35,7 +34,7 @@ export function PurchasePaymentScreen() {
     <Screen>
       <Header title="Regularizar pago" onBack={back} />
       <Title>{purchase.lot.title}</Title>
-      <SummaryRow label="Monto a regularizar" value={formatCurrency(purchase.total ?? purchase.amount + purchase.fee)} bold />
+      <SummaryRow label="Monto a regularizar" value={formatCurrency(purchase.total ?? purchase.amount + purchase.fee + purchase.penalty + (purchase.shippingCost ?? 0))} bold />
       <Body muted>Seleccioná un medio verificado para confirmar el pago pendiente.</Body>
       <SectionHeader title="Medios verificados" subtitle="Usá un medio aprobado para completar el pago" />
       {usablePayments.length ? usablePayments.map((payment) => (

@@ -32,7 +32,6 @@ import { Platform } from 'react-native';
 export const API_BASE_URL = apiConfig.baseUrl;
 
 type BackendUser = { nombre: string; apellido: string; email: string; categoria: string; estado: string };
-type BackendLoginTwoFactorStart = { requires_2fa: boolean; challenge_id: string; email: string; message: string };
 type BackendLogin = { access_token?: string; token_type?: string; usuario?: BackendUser };
 type VerifyCodeResponse = { message: string; token_verificacion?: string; tokenVerificacion?: string };
 type BackendAuction = {
@@ -109,7 +108,7 @@ function extractRejectedShippingCost(asset: BackendAsset): number | undefined {
   return dynamicEntry ? toOptionalNumber(dynamicEntry[1]) : undefined;
 }
 type BackendPurchase = {
-  id: number; nombre_item: string; subasta: string; fecha?: string; valor_pujado: number; multa: number;
+  id: number; nombre_item: string; subasta: string; fecha?: string; valor_pujado: number; multa?: number | null;
   estado_pago: string; estado_entrega: string; costo_envio?: number; total?: number; medio_pago?: string;
   direccion_entrega?: string; factura_url?: string; poliza_id?: string | null; numero_poliza?: string | null;
 };
@@ -216,7 +215,9 @@ function mapPurchase(purchase: BackendPurchase): Purchase {
     auctionName: purchase.subasta,
     date: purchase.fecha,
     amount: purchase.valor_pujado,
-    fee: purchase.multa ?? 0,
+    // CompraResumen todavía no expone la comisión de RegistroDeSubasta.
+    fee: 0,
+    penalty: purchase.multa ?? 0,
     paymentStatus: purchase.estado_pago,
     deliveryStatus: purchase.estado_entrega,
     insuranceId: purchase.poliza_id ?? purchase.numero_poliza ?? undefined,
@@ -314,24 +315,6 @@ export const authService = {
   async login(email: string, password: string): Promise<Session> {
     const login = await request<BackendLogin>(apiRoutes.login, { method: 'POST', body: JSON.stringify({ email, password }) });
     return this.loginFromResponse(login);
-  },
-  async verifyLogin2fa(challengeId: string, code: string): Promise<Session> {
-    const login = await request<BackendLogin>(apiRoutes.loginVerify2fa, {
-      method: 'POST',
-      body: JSON.stringify({ challenge_id: challengeId, codigo: code }),
-    });
-    return this.loginFromResponse(login);
-  },
-  async resendLogin2fa(challengeId: string) {
-    const response = await request<BackendLoginTwoFactorStart>(apiRoutes.loginResend2fa, {
-      method: 'POST',
-      body: JSON.stringify({ challenge_id: challengeId }),
-    });
-    return {
-      challengeId: response.challenge_id,
-      email: response.email,
-      message: response.message,
-    };
   },
   async register(input: { name: string; surname: string; email: string; address: string; country: string; front: FileUpload; back: FileUpload }) {
     const form = new FormData();

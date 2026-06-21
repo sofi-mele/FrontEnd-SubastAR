@@ -88,6 +88,7 @@ export interface Purchase {
   lot: Lot;
   amount: number;
   fee: number;
+  penalty: number;
   deliveryStatus: string;
   paymentStatus: string;
   insuranceId?: string;
