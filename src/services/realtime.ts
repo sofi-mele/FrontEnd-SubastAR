@@ -1,6 +1,6 @@
 import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs';
 
-import { apiConfig } from '@/services/http';
+import { getApiBaseUrl } from '@/services/http';
 import { getToken } from '@/services/session-storage';
 import type { AuctionRealtimeEvent, UserNotificationRealtimeEvent } from '@/types/domain';
 
@@ -58,7 +58,7 @@ function stringFrom(value: unknown): string | undefined {
 }
 
 function buildRealtimeUrl() {
-  const wsBaseUrl = apiConfig.baseUrl
+  const wsBaseUrl = getApiBaseUrl()
     .replace(/\/+$/, '')
     .replace(/^http:\/\//, 'ws://')
     .replace(/^https:\/\//, 'wss://');
@@ -163,15 +163,24 @@ export function addRealtimeStatusListener(callback: StatusCallback) {
 export async function connectRealtime() {
   if (client?.active) return;
 
+  let brokerURL: string;
+  try {
+    brokerURL = buildRealtimeUrl();
+  } catch (error) {
+    realtimeLog('configuracion realtime invalida', error);
+    setStatus('error');
+    return;
+  }
+
   client = new Client({
-    brokerURL: buildRealtimeUrl(),
+    brokerURL,
     reconnectDelay: 5000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     beforeConnect: async () => {
       const token = await getToken();
       client!.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-      realtimeLog('conectando', buildRealtimeUrl());
+      realtimeLog('conectando', brokerURL);
       setStatus('connecting');
     },
     onConnect: () => {

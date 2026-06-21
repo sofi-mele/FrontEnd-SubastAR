@@ -81,6 +81,13 @@ export class ApiNetworkError extends Error {
   }
 }
 
+export function getApiBaseUrl() {
+  if (!apiConfig.baseUrl) {
+    throw new ApiNetworkError('EXPO_PUBLIC_API_URL no está configurada.');
+  }
+  return apiConfig.baseUrl;
+}
+
 async function extractErrorMessage(response: Response): Promise<string> {
   const fallback = getServerCommunicationFallback();
   const contentType = response.headers.get('content-type') ?? '';
@@ -121,16 +128,14 @@ async function extractErrorMessage(response: Response): Promise<string> {
 }
 
 export async function request<T>(route: string, options?: RequestInit): Promise<T> {
-  if (!apiConfig.baseUrl) {
-    throw new ApiNetworkError('EXPO_PUBLIC_API_URL no está configurada.');
-  }
+  const baseUrl = getApiBaseUrl();
   const token = await getToken();
   const headers = new Headers(options?.headers);
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (options?.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   let response: Response;
   try {
-    response = await fetch(`${apiConfig.baseUrl}${route}`, { ...options, headers });
+    response = await fetch(`${baseUrl}${route}`, { ...options, headers });
   } catch {
     await networkErrorHandler?.();
     throw new ApiNetworkError();
@@ -148,15 +153,13 @@ export async function request<T>(route: string, options?: RequestInit): Promise<
 }
 
 export async function requestText(route: string, options?: RequestInit): Promise<string> {
-  if (!apiConfig.baseUrl) {
-    throw new ApiNetworkError('EXPO_PUBLIC_API_URL no está configurada.');
-  }
+  const baseUrl = getApiBaseUrl();
   const token = await getToken();
   const headers = new Headers(options?.headers);
   if (token) headers.set('Authorization', `Bearer ${token}`);
   let response: Response;
   try {
-    response = await fetch(`${apiConfig.baseUrl}${route}`, { ...options, headers });
+    response = await fetch(`${baseUrl}${route}`, { ...options, headers });
   } catch {
     await networkErrorHandler?.();
     throw new ApiNetworkError();
