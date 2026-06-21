@@ -167,7 +167,12 @@ export function LiveAuctionScreen() {
         message={auctionFinished ? 'La subasta finalizo. Consulta el resultado del ultimo lote disponible.' : 'El lote finalizó o aún no comenzó.'}
       />
       <Button label="Actualizar estado" variant="ghost" onPress={() => refetch()} />
-      {lastLotId ? <Button label="Consultar resultado del lote" onPress={() => router.push({ pathname: '/result/[id]', params: { id, itemId: lastLotId } })} /> : null}
+      {auctionFinished || lastLotId ? (
+        <Button
+          label="Ver resultados de la subasta"
+          onPress={() => router.push(`/auction/${id}/results${lastLotId ? `?initialLotId=${encodeURIComponent(lastLotId)}` : ''}`)}
+        />
+      ) : null}
     </Screen>
   );
   const currency = auction?.currency ?? 'ARS';

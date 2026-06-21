@@ -39,6 +39,7 @@ export function AuctionDetailScreen() {
       </Card>
       <Button label="Ver catálogo" onPress={() => router.push(`/auction/${id}/catalog`)} />
       {auction.status === 'En vivo' ? <Button label="Entrar a subasta en vivo" onPress={() => router.push(`/live/${id}`)} /> : null}
+      {auction.status === 'Finalizada' ? <Button label="Ver resultados de la subasta" onPress={() => router.push(`/auction/${id}/results`)} /> : null}
     </Screen>
   );
 }
