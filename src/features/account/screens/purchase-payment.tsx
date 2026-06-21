@@ -23,6 +23,9 @@ export function PurchasePaymentScreen() {
     mutationFn: () => purchaseService.regularize(id ?? '', paymentId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['purchase', id] });
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['penalties'] });
+      queryClient.invalidateQueries({ queryKey: ['account-state'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
       queryClient.invalidateQueries({ queryKey: ['chats'] });
       router.replace(`/purchases/${id}`);

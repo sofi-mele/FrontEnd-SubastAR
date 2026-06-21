@@ -22,6 +22,7 @@ import type {
   UserDetails,
   UserMetrics,
   UserNotification,
+  UserPenalty,
 } from '@/types/domain';
 import { buildCloudinaryDeliveryUrl, uploadImageToCloudinary } from '@/services/cloudinary';
 import { apiConfig, apiRoutes, request, requestText } from '@/services/http';
@@ -108,9 +109,20 @@ function extractRejectedShippingCost(asset: BackendAsset): number | undefined {
   return dynamicEntry ? toOptionalNumber(dynamicEntry[1]) : undefined;
 }
 type BackendPurchase = {
-  id: number; nombre_item: string; subasta: string; fecha?: string; valor_pujado: number; multa?: number | null;
+  id: number; nombre_item: string; subasta: string; fecha?: string; valor_pujado: number;
+  comision?: number | null; multa?: number | null;
   estado_pago: string; estado_entrega: string; costo_envio?: number; total?: number; medio_pago?: string;
   direccion_entrega?: string; factura_url?: string; poliza_id?: string | null; numero_poliza?: string | null;
+};
+type BackendPenalty = {
+  id?: number | null;
+  monto?: number | null;
+  estado?: string | null;
+  fecha?: string | null;
+  motivo?: string | null;
+  registro_id?: number | null;
+  compra_id?: number | null;
+  descripcion_compra?: string | null;
 };
 type BackendConversation = { tipo: string; titulo: string; subtitulo: string; mensajes_no_leidos: number };
 type BackendMessage = { id: number; emisor: string; contenido: string; timestamp: string };
@@ -215,8 +227,7 @@ function mapPurchase(purchase: BackendPurchase): Purchase {
     auctionName: purchase.subasta,
     date: purchase.fecha,
     amount: purchase.valor_pujado,
-    // CompraResumen todavía no expone la comisión de RegistroDeSubasta.
-    fee: 0,
+    fee: purchase.comision ?? 0,
     penalty: purchase.multa ?? 0,
     paymentStatus: purchase.estado_pago,
     deliveryStatus: purchase.estado_entrega,
@@ -470,6 +481,19 @@ export const profileService = {
       penalty: state.multa_pendiente ?? 0,
       message: state.mensaje,
     };
+  },
+  async penalties(): Promise<UserPenalty[]> {
+    const penalties = await request<BackendPenalty[]>(apiRoutes.userPenalties);
+    return penalties.map((penalty, index) => ({
+      id: penalty.id != null ? String(penalty.id) : `penalty-${index}`,
+      amount: toOptionalNumber(penalty.monto) ?? 0,
+      status: penalty.estado?.trim() || 'Sin estado',
+      reason: penalty.motivo?.trim() || undefined,
+      date: penalty.fecha ?? undefined,
+      registrationId: penalty.registro_id != null ? String(penalty.registro_id) : undefined,
+      purchaseId: penalty.compra_id != null ? String(penalty.compra_id) : undefined,
+      purchaseDescription: penalty.descripcion_compra?.trim() || undefined,
+    }));
   },
   async metrics(): Promise<UserMetrics> {
     const value = await request<BackendMetrics>(apiRoutes.metrics);

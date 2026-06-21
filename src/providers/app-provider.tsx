@@ -110,6 +110,10 @@ function RealtimeNotificationsBridge({ session }: { session: Session | null }) {
       queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
       queryClient.invalidateQueries({ queryKey: ['chats'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      if (notification.type.toLowerCase() === 'multa') {
+        queryClient.invalidateQueries({ queryKey: ['penalties'] });
+        queryClient.invalidateQueries({ queryKey: ['account-state'] });
+      }
     });
 
     return () => unsubscribe();

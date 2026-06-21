@@ -19,6 +19,7 @@ const RECONNECT_QUERY_KEYS = [
   ['profile'], // The current user profile may have changed during the outage.
   ['user'], // Kept for compatibility if a user-scoped query is introduced.
   ['account-state'], // Blocking/approval status controls available actions.
+  ['penalties'], // Penalty details should recover after reconnect.
 ];
 
 export function ConnectivityProvider({ children }: PropsWithChildren) {

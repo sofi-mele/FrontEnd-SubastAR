@@ -202,6 +202,17 @@ export interface AccountState {
   message?: string;
 }
 
+export interface UserPenalty {
+  id: string;
+  amount: number;
+  status: string;
+  reason?: string;
+  date?: string;
+  registrationId?: string;
+  purchaseId?: string;
+  purchaseDescription?: string;
+}
+
 export interface UserMetrics {
   participated: number;
   won: number;

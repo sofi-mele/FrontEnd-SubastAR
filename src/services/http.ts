@@ -55,6 +55,7 @@ export const apiRoutes = {
   invoiceDownload: (id: string) => `/compras/${id}/factura/download`,
   user: '/usuarios/me',
   accountState: '/usuarios/me/estado-cuenta',
+  userPenalties: '/usuarios/me/multas',
   metrics: '/usuarios/me/metricas',
   lostParticipations: '/usuarios/me/participaciones-perdidas',
   insurance: (id: string) => `/seguros/${id}`,
