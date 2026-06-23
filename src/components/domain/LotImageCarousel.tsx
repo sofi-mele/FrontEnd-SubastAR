@@ -10,7 +10,7 @@ type LotImageCarouselProps = {
   height?: number;
 };
 
-export function LotImageCarousel({ images, title, height = 260 }: LotImageCarouselProps) {
+export function LotImageCarousel({ images, title, height = 360 }: LotImageCarouselProps) {
   const validImages = useMemo(() => (images ?? []).filter(Boolean), [images]);
   const [index, setIndex] = useState(0);
   const hasImages = validImages.length > 0;
@@ -49,7 +49,7 @@ export function LotImageCarousel({ images, title, height = 260 }: LotImageCarous
   return (
     <View style={styles.wrapper}>
       <View style={[styles.carouselFrame, { height }]}>
-        <Image source={{ uri: currentImage }} style={styles.carouselImage} resizeMode="cover" />
+        <Image source={{ uri: currentImage }} style={styles.carouselImage} resizeMode="contain" />
         {hasMultipleImages ? <View style={styles.imageCountBadge}><Text style={styles.imageCountText}>{validImages.length} fotos</Text></View> : null}
         {hasMultipleImages ? (
           <>
