@@ -370,7 +370,7 @@ export const authService = {
     });
   },
   loginFromResponse(login: BackendLogin): Session {
-    if (!login.access_token || !login.usuario) throw new Error('Email o contraseÃ±a incorrectos.');
+    if (!login.access_token || !login.usuario) throw new Error('Email o contraseña incorrectos.');
     return {
       token: login.access_token,
       profile: {
