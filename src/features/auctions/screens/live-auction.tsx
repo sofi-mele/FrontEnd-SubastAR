@@ -50,7 +50,7 @@ export function LiveAuctionScreen() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['live', id],
     queryFn: () => auctionService.live(id),
-    enabled: !!id && !!session,
+    enabled: !!id,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
@@ -63,7 +63,7 @@ export function LiveAuctionScreen() {
   }, [data?.lot?.id]);
 
   useEffect(() => {
-    if (!id || !session) return;
+    if (!id) return;
 
     const unsubscribeAuction = subscribeToAuction(id, (event) => {
       if (event.type === 'AUCTION_FINISHED') {
@@ -110,12 +110,12 @@ export function LiveAuctionScreen() {
       setRealtimeNotice(isOwnBid ? 'Tu puja fue registrada.' : event.message ?? 'Nueva mejor oferta recibida.');
     });
 
-    const unsubscribeUserBidEvents = subscribeToUserBidEvents((event) => {
+    const unsubscribeUserBidEvents = session ? subscribeToUserBidEvents((event) => {
       if (event.type !== 'BID_OUTBID') return;
       if (event.auctionId && event.auctionId !== id) return;
       setRealtimeNotice(event.message ?? 'Tu oferta fue superada.');
       if (event.secondsLeft != null) setDisplaySecondsLeft(event.secondsLeft);
-    });
+    }) : undefined;
 
     const unsubscribeStatus = addRealtimeStatusListener((nextStatus) => {
       if (nextStatus === 'connected') void refetch();
@@ -123,7 +123,7 @@ export function LiveAuctionScreen() {
 
     return () => {
       unsubscribeAuction();
-      unsubscribeUserBidEvents();
+      unsubscribeUserBidEvents?.();
       unsubscribeStatus();
     };
   }, [id, queryClient, refetch, session, sessionEmail]);
@@ -150,13 +150,6 @@ export function LiveAuctionScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  if (!session) return (
-    <Screen>
-      <Header title="Subasta en vivo" onBack={back} />
-      <StatusState icon="lock-closed-outline" title="Acceso restringido" message="Necesitás iniciar sesión para acceder a las subastas en vivo." tone="yellow" />
-      <Button label="Iniciar sesión" onPress={() => router.replace({ pathname: '/login', params: { returnTo: `/live/${id}` } })} />
-    </Screen>
-  );
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !data) return <Screen><Header title="Subasta en vivo" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
   if (auctionFinished || !data.lot) return (
@@ -222,39 +215,48 @@ export function LiveAuctionScreen() {
       )}
       <Card style={styles.bidPanel}>
         <SectionHeader title="Consola de puja" subtitle="Elegí un monto rápido o ingresalo manualmente" />
-        <Body muted>Mejor oferta actual</Body>
-        <Text style={styles.offer}>{data.bestBid > 0 ? formatAuctionMoney(data.bestBid, currency) : 'Sin ofertas todavía'}</Text>
-        {data.bestBid <= 0 ? <Body muted>Precio base: {formatAuctionMoney(data.lot.basePrice, currency)}</Body> : null}
-        <View style={styles.tileRow}>
-          <InfoTile icon="trending-up-outline" label="Puja mínima" value={formatAuctionMoney(data.minBid, currency)} />
-          <InfoTile icon="shield-checkmark-outline" label="Puja máxima" value={data.maxBid != null ? formatAuctionMoney(data.maxBid, currency) : 'Sin tope'} />
-        </View>
-        <View style={styles.quickBids}>
-          {quickAmounts.map((item) => (
-            <Pressable key={item.label} style={styles.quickBid} onPress={() => setAmount(String(Math.round(item.value)))}>
-              <Text style={styles.quickBidLabel}>{item.label}</Text>
-              <Text style={styles.quickBidValue}>{formatAuctionMoney(item.value, currency)}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Input label="Tu oferta" value={amount} keyboardType="number-pad" onChangeText={setAmount} />
-        {hasInvalidAmount ? <Body muted>Ingresá un monto numérico válido.</Body> : null}
-        {isBelowMinimum ? <Body muted>La puja mínima es {formatAuctionMoney(data.minBid, currency)}.</Body> : null}
-        {isAboveMaximum ? <Body muted>El monto supera el máximo general. Si tu categoría lo permite, el sistema validará la operación.</Body> : null}
-        {usablePayments.length ? usablePayments.map((payment) => (
-          <Pressable key={payment.id} onPress={() => setPaymentId(payment.id)}>
-            <PaymentMethodCard payment={payment} selected={paymentId === payment.id} />
-          </Pressable>
-        )) : (
+        {session ? (
           <>
-            <StatusState icon="card-outline" title="Medio de pago pendiente" message="No podés pujar hasta contar con un medio aprobado para operar." tone="yellow" actionLabel="Agregar medio de pago" onAction={() => router.push('/profile/payments')} />
+            <Body muted>Mejor oferta actual</Body>
+            <Text style={styles.offer}>{data.bestBid > 0 ? formatAuctionMoney(data.bestBid, currency) : 'Sin ofertas todavía'}</Text>
+            {data.bestBid <= 0 ? <Body muted>Precio base: {formatAuctionMoney(data.lot.basePrice, currency)}</Body> : null}
+            <View style={styles.tileRow}>
+              <InfoTile icon="trending-up-outline" label="Puja mínima" value={formatAuctionMoney(data.minBid, currency)} />
+              <InfoTile icon="shield-checkmark-outline" label="Puja máxima" value={data.maxBid != null ? formatAuctionMoney(data.maxBid, currency) : 'Sin tope'} />
+            </View>
+            <View style={styles.quickBids}>
+              {quickAmounts.map((item) => (
+                <Pressable key={item.label} style={styles.quickBid} onPress={() => setAmount(String(Math.round(item.value)))}>
+                  <Text style={styles.quickBidLabel}>{item.label}</Text>
+                  <Text style={styles.quickBidValue}>{formatAuctionMoney(item.value, currency)}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Input label="Tu oferta" value={amount} keyboardType="number-pad" onChangeText={setAmount} />
+            {hasInvalidAmount ? <Body muted>Ingresá un monto numérico válido.</Body> : null}
+            {isBelowMinimum ? <Body muted>La puja mínima es {formatAuctionMoney(data.minBid, currency)}.</Body> : null}
+            {isAboveMaximum ? <Body muted>El monto supera el máximo general. Si tu categoría lo permite, el sistema validará la operación.</Body> : null}
+            {usablePayments.length ? usablePayments.map((payment) => (
+              <Pressable key={payment.id} onPress={() => setPaymentId(payment.id)}>
+                <PaymentMethodCard payment={payment} selected={paymentId === payment.id} />
+              </Pressable>
+            )) : (
+              <>
+                <StatusState icon="card-outline" title="Medio de pago pendiente" message="No podés pujar hasta contar con un medio aprobado para operar." tone="yellow" actionLabel="Agregar medio de pago" onAction={() => router.push('/profile/payments')} />
+              </>
+            )}
+            <Button
+              label={bidMutation.isPending ? 'Enviando...' : 'Pujar ahora'}
+              disabled={bidMutation.isPending || !paymentId || !amount.trim() || !Number.isFinite(amountValue) || amountValue < data.minBid}
+              onPress={() => bidMutation.mutate()}
+            />
+          </>
+        ) : (
+          <>
+            <StatusState icon="lock-closed-outline" title="Iniciá sesión para poder pujar en esta subasta" tone="yellow" />
+            <Button label="Iniciar sesión" onPress={() => router.push({ pathname: '/login', params: { returnTo: `/live/${id}` } })} />
           </>
         )}
-        <Button
-          label={bidMutation.isPending ? 'Enviando...' : 'Pujar ahora'}
-          disabled={bidMutation.isPending || !paymentId || !amount.trim() || !Number.isFinite(amountValue) || amountValue < data.minBid}
-          onPress={() => bidMutation.mutate()}
-        />
       </Card>
       <SectionHeader title="Historial de pujas" subtitle="Últimas ofertas registradas" />
       <Card style={styles.historyCard}>

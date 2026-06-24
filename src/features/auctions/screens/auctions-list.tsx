@@ -6,12 +6,10 @@ import { StyleSheet, View } from 'react-native';
 import { AuctionCard } from '@/components/domain/cards';
 import { Chip, EmptyState, ErrorState, Header, IconButton, LoadingState, Screen, SearchInput, SectionHeader, SecurityNote } from '@/components/ui/primitives';
 import { spacing } from '@/constants/theme';
-import { useSession } from '@/providers/app-provider';
 import { auctionService } from '@/services/api';
 
 export function AuctionsScreen() {
   const router = useRouter();
-  const { session } = useSession();
   const params = useLocalSearchParams<{ status?: string; category?: string; currency?: string }>();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -27,8 +25,8 @@ export function AuctionsScreen() {
     queryKey: ['auctions', debouncedSearch, status, category, currency],
     queryFn: () => auctionService.list({ search: debouncedSearch, status, category, currency }),
   });
-  const statusChips = session ? ['Todas', 'En vivo', 'Próximas'] : ['Todas', 'Próximas'];
-  const visibleAuctions = (session ? data : data?.filter((a) => a.status !== 'En vivo'))?.filter((a) => a.status !== 'Finalizada');
+  const statusChips = ['Todas', 'En vivo', 'Próximas'];
+  const visibleAuctions = data?.filter((a) => a.status !== 'Finalizada');
   return (
     <Screen>
       <Header title="Subastas" right={<IconButton icon="options-outline" accessibilityLabel="Filtros" tone="primary" onPress={() => router.push('/auction-filters')} />} />
