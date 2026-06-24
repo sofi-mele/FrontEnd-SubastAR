@@ -33,7 +33,7 @@ export function AuctionsScreen() {
     <Screen>
       <Header title="Subastas" right={<IconButton icon="options-outline" accessibilityLabel="Filtros" tone="primary" onPress={() => router.push('/auction-filters')} />} />
       <SearchInput value={search} onChangeText={setSearch} placeholder="Buscar subasta" />
-      <SectionHeader title="Estado de subasta" subtitle="Filtrá por disponibilidad y contexto" actionLabel="Filtros" onAction={() => router.push('/auction-filters')} />
+      <SectionHeader title="Estado de subasta" subtitle="Filtrá por disponibilidad y contexto" />
       <View style={styles.chips}>
         {statusChips.map((item) => (
           <Chip label={item} active={item === status} onPress={() => setStatus(item)} key={item} />
