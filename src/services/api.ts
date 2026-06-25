@@ -251,7 +251,7 @@ function mapAsset(asset: BackendAsset): OwnedAsset {
     id: String(asset.id),
     title: asset.nombre,
     category: asset.tipo ?? asset.subasta_asignada ?? 'Sin asignar',
-    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : normalizedStatus === 'pendiente_inspeccion' || normalizedStatus === 'en_inspeccion' || normalizedStatus === 'en_deposito' ? 'En inspección' : normalizedStatus === 'en_revision' ? 'En revisión' : 'Pendiente',
+    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : normalizedStatus === 'en_revision' || normalizedStatus === 'pendiente_inspeccion' || normalizedStatus === 'en_inspeccion' || normalizedStatus === 'en_deposito' ? 'En revisión' : 'Pendiente',
     depositReceived: normalizedStatus === 'en_deposito',
     detail,
     rejectionReason: asset.motivo_rechazo ?? undefined,
@@ -602,15 +602,14 @@ export const insuranceService = {
 
 export const assetService = {
   async list(status?: string): Promise<OwnedAsset[]> {
-    const statusMap: Record<string, string> = {
-      Pendiente: 'en_revision',
+    const backendStatusMap: Record<string, string> = {
       Aceptado: 'aceptado',
       Rechazado: 'rechazado',
     };
-    const backendStatus = status && status !== 'En inspección' ? statusMap[status] : undefined;
+    const backendStatus = status ? backendStatusMap[status] : undefined;
     const route = backendStatus ? `${apiRoutes.assets}?estado=${backendStatus}` : apiRoutes.assets;
     const all = (await request<BackendAsset[]>(route)).map(mapAsset);
-    if (status === 'En inspección') return all.filter((a) => a.status === 'En inspección');
+    if (status && status !== 'Todos' && !backendStatus) return all.filter((a) => a.status === status);
     return all;
   },
   async get(id: string): Promise<OwnedAsset> {

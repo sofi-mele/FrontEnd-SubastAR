@@ -106,7 +106,7 @@ export interface OwnedAsset {
   id: string;
   title: string;
   category: string;
-  status: 'Pendiente' | 'En revisión' | 'En inspección' | 'Aceptado' | 'Rechazado';
+  status: 'Pendiente' | 'En revisión' | 'Aceptado' | 'Rechazado';
   depositReceived?: boolean;
   detail: string;
   rejectionReason?: string;

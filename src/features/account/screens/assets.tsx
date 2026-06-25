@@ -18,7 +18,7 @@ export function AssetsScreen() {
     <Screen>
       <Header title="Mis bienes" onBack={back} />
       <SectionHeader title="Estado de solicitud" subtitle="Filtrá tus bienes por su revisión actual" />
-      <FilterTabs options={['Todos', 'Pendiente', 'En revisión', 'En inspección', 'Aceptado', 'Rechazado'] as const} value={status} onChange={setStatus} />
+      <FilterTabs options={['Todos', 'Pendiente', 'En revisión', 'Aceptado', 'Rechazado'] as const} value={status} onChange={setStatus} />
       {isLoading ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : data?.length ? data.map((asset) => {
         const pendingDecision = asset.status === 'Aceptado' && !asset.conditionsAccepted;
         return (
@@ -27,7 +27,7 @@ export function AssetsScreen() {
               <View style={styles.cardHeaderCopy}>
                 <Text style={styles.cardTitle}>{asset.title}</Text>
               </View>
-              <Badge label={asset.status} tone={asset.status === 'Aceptado' ? 'green' : asset.status === 'Rechazado' ? 'red' : asset.status === 'En inspección' ? 'purple' : asset.status === 'En revisión' ? 'dark' : 'yellow'} />
+              <Badge label={asset.status} tone={asset.status === 'Aceptado' ? 'green' : asset.status === 'Rechazado' ? 'red' : asset.status === 'En revisión' ? 'purple' : 'yellow'} />
             </View>
             {pendingDecision ? (
               <StatusState icon="alert-circle-outline" title="Requiere tu decisión" message="La empresa aceptó el bien. Revisá las condiciones y decidí si participás." tone="yellow" />
