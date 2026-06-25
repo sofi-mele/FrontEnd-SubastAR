@@ -52,7 +52,7 @@ export function AssetDetailScreen() {
         <SummaryRow label="Comisión" value={data.commission != null ? formatCurrency(data.commission) : 'No asignado'} />
         <SummaryRow label="Depósito" value={data.depositLocation ?? 'No asignado'} />
         {data.status === 'Rechazado' ? <SummaryRow label="Motivo de rechazo" value={rejectionReason} /> : null}
-        {data.status === 'Rechazado' ? <SummaryRow label="Costo de envío" value={data.rejectionShippingCost != null ? formatCurrency(data.rejectionShippingCost) : 'No informado'} /> : null}
+        {data.status === 'Rechazado' ? <SummaryRow label="Costo de devolución" value={data.rejectionShippingCost != null ? formatCurrency(data.rejectionShippingCost) : 'No informado'} /> : null}
       </Card>
       {data.status === 'En inspección' && !data.depositReceived ? (
         <StatusState

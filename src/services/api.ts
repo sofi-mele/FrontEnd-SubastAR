@@ -89,14 +89,14 @@ function toOptionalNumber(value: unknown): number | undefined {
 
 function extractRejectedShippingCost(asset: BackendAsset): number | undefined {
   const direct =
-    toOptionalNumber(asset.costo_envio)
-    ?? toOptionalNumber(asset.costo_devolucion)
+    toOptionalNumber(asset.costo_devolucion)
     ?? toOptionalNumber(asset.costo_envio_devolucion)
-    ?? toOptionalNumber(asset.costoEnvio)
     ?? toOptionalNumber(asset.costoDevolucion)
     ?? toOptionalNumber(asset.costoEnvioDevolucion)
-    ?? toOptionalNumber(asset.costo_de_envio)
-    ?? toOptionalNumber(asset.costo_de_envio_devolucion);
+    ?? toOptionalNumber(asset.costo_de_envio_devolucion)
+    ?? toOptionalNumber(asset.costo_envio)
+    ?? toOptionalNumber(asset.costoEnvio)
+    ?? toOptionalNumber(asset.costo_de_envio);
   if (direct != null) return direct;
 
   const record = asset as Record<string, unknown>;

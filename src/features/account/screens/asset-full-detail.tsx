@@ -103,7 +103,7 @@ export function AssetFullDetailScreen() {
         </View>
         {showHeaderDetail ? <Body>{data.detail}</Body> : null}
         {data.status === 'Rechazado' ? <AssetField label="Motivo de rechazo" value={rejectionReason} /> : null}
-        {data.status === 'Rechazado' ? <AssetField label="Costo de envío" value={data.rejectionShippingCost != null ? formatCurrency(data.rejectionShippingCost) : 'No informado'} /> : null}
+        {data.status === 'Rechazado' ? <AssetField label="Costo de devolución" value={data.rejectionShippingCost != null ? formatCurrency(data.rejectionShippingCost) : 'No informado'} /> : null}
       </Card>
       <Card style={styles.assetGalleryCard}>
         <SectionHeader title="Galería del bien" subtitle={`${photos.length} imágenes cargadas`} />
