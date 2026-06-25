@@ -15,7 +15,7 @@ export function SellSuccessScreen() {
         <Summary label="Estado" value={status ?? 'Pendiente de revisión'} />
       </Card>
       <Button label="Agregar otro bien" onPress={() => router.replace('/sell')} />
-      <Button label="Ver mis bienes" variant="secondary" onPress={() => router.replace('/profile/assets')} />
+      <Button label="Ver mis bienes" variant="secondary" onPress={() => { router.dismissAll(); router.replace('/profile/assets'); }} />
       <Button label="Volver al inicio" variant="ghost" onPress={() => router.replace('/(tabs)')} />
     </Screen>
   );
