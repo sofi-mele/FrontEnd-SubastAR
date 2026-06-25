@@ -669,13 +669,10 @@ export const assetService = {
   async confirm(code: string) {
     return request<{ codigo_solicitud: string; codigo_bien: string; estado: string; message: string }>(apiRoutes.assetRequestConfirm(code), { method: 'POST' });
   },
-  async acceptConditions(id: string, accepted: boolean, collectionAccountId?: string) {
+  async acceptConditions(id: string, accepted: boolean) {
     return request<{ message: string }>(apiRoutes.assetConditions(id), {
       method: 'POST',
-      body: JSON.stringify({
-        acepta: accepted,
-        ...(collectionAccountId ? { cuenta_cobro_id: Number(collectionAccountId) } : {}),
-      }),
+      body: JSON.stringify({ acepta: accepted }),
     });
   },
 };
