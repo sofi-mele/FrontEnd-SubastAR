@@ -44,6 +44,7 @@ export const apiRoutes = {
   assetRequestData: (code: string) => `/bienes/solicitudes/${code}/datos`,
   assetRequestPhotos: (code: string) => `/bienes/solicitudes/${code}/fotos`,
   assetRequestDocuments: (code: string) => `/bienes/solicitudes/${code}/documentos`,
+  assetRequestDocumentFiles: (code: string) => `/bienes/solicitudes/${code}/documentos/archivos`,
   assetRequestConfirm: (code: string) => `/bienes/solicitudes/${code}/confirmar`,
   assetConditions: (id: string) => `/bienes/mis-bienes/${id}/aceptar-condiciones`,
   collectionAccounts: '/usuarios/me/cuentas-cobro',

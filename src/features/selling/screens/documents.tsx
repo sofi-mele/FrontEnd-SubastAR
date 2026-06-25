@@ -20,9 +20,10 @@ export function SellDocumentsScreen() {
   const params = useLocalSearchParams<{ amount: string; code: string; name: string; type: string; photos: string }>();
   const [documents, setDocuments] = useState<FileUpload[]>([]);
   const [declaration, setDeclaration] = useState(false);
+  const [acceptsReturn, setAcceptsReturn] = useState(false);
   const [apiError, setApiError] = useState('');
   const upload = useMutation({
-    mutationFn: () => assetService.uploadDocuments(params.code ?? '', declaration, documents),
+    mutationFn: () => assetService.uploadDocuments(params.code ?? '', declaration, acceptsReturn, documents),
     onSuccess: () => router.push({ pathname: '/sell/review', params: { ...params, documents: String(documents.length) } }),
   });
   async function addDocument() {
@@ -55,6 +56,12 @@ export function SellDocumentsScreen() {
           <Body>Declaro que el bien ofrecido para subasta es de mi exclusiva propiedad y que no se encuentra sujeto a ningún impedimento legal que restrinja su disposición.</Body>
         </Card>
       </Pressable>
+      <Pressable onPress={() => setAcceptsReturn((current) => !current)}>
+        <Card style={[styles.declaration, acceptsReturn && styles.declarationActive]}>
+          <Ionicons name={acceptsReturn ? 'checkmark-circle' : 'ellipse-outline'} color={acceptsReturn ? colors.success : colors.primary} size={22} />
+          <Body>Acepto que la devolución del bien, en caso de no ser aceptado, es con cargo a mi persona.</Body>
+        </Card>
+      </Pressable>
       <SectionLabel>Documentación preventiva opcional</SectionLabel>
       <Card style={styles.dropzoneCard}>
         <Body muted>Al tocar adjuntar se abrira el selector de archivos del dispositivo. Podes elegir PDF o imagenes.</Body>
@@ -74,7 +81,7 @@ export function SellDocumentsScreen() {
         </Card>
       ))}
       <Divider />
-      <Button label={upload.isPending ? 'Guardando...' : 'Siguiente'} disabled={!declaration || upload.isPending} onPress={() => upload.mutate()} />
+      <Button label={upload.isPending ? 'Guardando...' : 'Siguiente'} disabled={!declaration || !acceptsReturn || upload.isPending} onPress={() => upload.mutate()} />
       {upload.isError ? <Body muted>{errorToUserMessage(upload.error, 'No fue posible cargar documentación.')}</Body> : null}
     </Screen>
   );

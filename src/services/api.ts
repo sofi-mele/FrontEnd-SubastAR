@@ -660,11 +660,17 @@ export const assetService = {
       }),
     });
   },
-  async uploadDocuments(code: string, declaration: boolean, files: FileUpload[]) {
-    const form = new FormData();
-    form.append('declara_propiedad', String(declaration));
-    files.forEach((file) => appendFile(form, 'documentos', file));
-    return request<BackendAssetSubmission>(apiRoutes.assetRequestDocuments(code), { method: 'POST', body: form });
+  async uploadDocuments(code: string, declaration: boolean, acceptsReturn: boolean, files: FileUpload[]) {
+    const result = await request<BackendAssetSubmission>(apiRoutes.assetRequestDocuments(code), {
+      method: 'POST',
+      body: JSON.stringify({ declara_propiedad: declaration, acepta_devolucion_con_cargo: acceptsReturn }),
+    });
+    if (files.length > 0) {
+      const form = new FormData();
+      files.forEach((file) => appendFile(form, 'documentos', file));
+      await request<void>(apiRoutes.assetRequestDocumentFiles(code), { method: 'POST', body: form });
+    }
+    return result;
   },
   async confirm(code: string) {
     return request<{ codigo_solicitud: string; codigo_bien: string; estado: string; message: string }>(apiRoutes.assetRequestConfirm(code), { method: 'POST' });
