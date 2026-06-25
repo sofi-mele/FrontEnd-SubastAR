@@ -88,6 +88,9 @@ export function AssetDetailScreen() {
         <Button label="Aceptar condiciones" onPress={() => router.push(`/profile/assets/${data.id}/accept-conditions` as Href)} />
         <Button label="Rechazar condiciones" variant="secondary" onPress={() => accept.mutate(false)} />
       </> : null}
+      {data.status === 'Aceptado' && data.conditionsAccepted ? (
+        <Button label="Gestionar cuenta de cobro" variant="secondary" icon="card-outline" onPress={() => router.push({ pathname: '/profile/collection-accounts', params: { returnTo: `/profile/assets/${data.id}` } } as Href)} />
+      ) : null}
       {accept.isSuccess ? <StatusState icon="checkmark-circle-outline" title="Respuesta enviada" message="Registramos tu decisión sobre las condiciones del bien." tone="green" /> : null}
       {accept.isError ? <Body muted>{errorToUserMessage(accept.error, 'No fue posible registrar la decisión.')}</Body> : null}
     </Screen>

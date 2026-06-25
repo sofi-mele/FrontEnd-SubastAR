@@ -22,7 +22,7 @@ export function CollectionAccountsScreen() {
   const [country, setCountry] = useState('Argentina');
   const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
 
-  const { data: accounts, isLoading } = useQuery({
+  const { data: accounts, isLoading, isError } = useQuery({
     queryKey: ['collection-accounts'],
     queryFn: collectionAccountService.list,
   });
@@ -36,6 +36,21 @@ export function CollectionAccountsScreen() {
   });
 
   if (isLoading) return <Screen><LoadingState /></Screen>;
+  if (isError) return (
+    <Screen>
+      <Header title="Cuenta de cobro" onBack={back} />
+      <StatusState icon="alert-circle-outline" title="No pudimos cargar tus cuentas" message="Podés intentar agregar una cuenta de todas formas." tone="red" />
+      <Card style={styles.formCard}>
+        <SectionHeader title="Nueva cuenta de cobro" subtitle="Completá los datos bancarios" />
+        <Input label="Nombre del banco" value={bank} onChangeText={setBank} placeholder="Ej: Banco Nación" />
+        <Input label="CBU / IBAN" value={identifier} onChangeText={setIdentifier} placeholder="Ej: 0000000000000000000000" />
+        <Input label="País del banco" value={country} onChangeText={setCountry} placeholder="Ej: Argentina" />
+        <SecurityNote text="Esta cuenta recibirá el pago cuando la empresa cierre la venta del bien." />
+        <Button label={addAccount.isPending ? 'Guardando...' : 'Guardar cuenta'} disabled={!bank.trim() || !identifier.trim() || addAccount.isPending} onPress={() => addAccount.mutate()} />
+        {addAccount.isError ? <Body muted>{errorToUserMessage(addAccount.error, 'No fue posible guardar la cuenta.')}</Body> : null}
+      </Card>
+    </Screen>
+  );
 
   return (
     <Screen>
