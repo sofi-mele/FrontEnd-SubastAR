@@ -30,8 +30,7 @@ export function AcceptConditionsScreen() {
 
   useEffect(() => {
     if (isLoading || !accounts) return;
-    if (accounts.length === 0) setShowAddForm(true);
-    else if (!selectedAccountId) setSelectedAccountId(accounts[0].id);
+    if (accounts.length > 0 && !selectedAccountId) setSelectedAccountId(accounts[0].id);
   }, [isLoading, accounts, selectedAccountId]);
 
   const addAccount = useMutation({
@@ -46,12 +45,21 @@ export function AcceptConditionsScreen() {
   });
 
   const accept = useMutation({
-    mutationFn: () => assetService.acceptConditions(id ?? '', true, selectedAccountId),
-    onSuccess: () => {
+    mutationFn: () => assetService.acceptConditions(id ?? '', true, accounts?.length ? selectedAccountId : undefined),
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       queryClient.invalidateQueries({ queryKey: ['asset', id] });
       queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
       queryClient.invalidateQueries({ queryKey: ['chats'] });
+      try {
+        const freshAccounts = await collectionAccountService.list();
+        if (freshAccounts.length === 0) {
+          router.replace({ pathname: '/profile/payments/add', params: { type: 'cuenta_bancaria', returnTo: '/profile/assets' } } as Href);
+          return;
+        }
+      } catch {
+        // si el check falla, continuar al flujo de éxito normal
+      }
       setSuccess(true);
     },
   });
@@ -128,7 +136,7 @@ export function AcceptConditionsScreen() {
         <Divider />
         <Button
           label={accept.isPending ? 'Aceptando...' : 'Confirmar y aceptar condiciones'}
-          disabled={!selectedAccountId || accept.isPending}
+          disabled={(!!accounts?.length && !selectedAccountId) || accept.isPending}
           onPress={() => accept.mutate()}
         />
         {accept.isError ? <Body muted>{errorToUserMessage(accept.error, 'No fue posible aceptar las condiciones.')}</Body> : null}
