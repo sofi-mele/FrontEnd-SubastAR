@@ -251,7 +251,7 @@ function mapAsset(asset: BackendAsset): OwnedAsset {
     id: String(asset.id),
     title: asset.nombre,
     category: asset.tipo ?? asset.subasta_asignada ?? 'Sin asignar',
-    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : normalizedStatus === 'pendiente_inspeccion' || normalizedStatus === 'en_inspeccion' || normalizedStatus === 'en_deposito' ? 'En inspección' : 'Pendiente',
+    status: normalizedStatus === 'aceptado' ? 'Aceptado' : normalizedStatus === 'rechazado' ? 'Rechazado' : normalizedStatus === 'pendiente_inspeccion' || normalizedStatus === 'en_inspeccion' || normalizedStatus === 'en_deposito' ? 'En inspección' : normalizedStatus === 'en_revision' ? 'En revisión' : 'Pendiente',
     depositReceived: normalizedStatus === 'en_deposito',
     detail,
     rejectionReason: asset.motivo_rechazo ?? undefined,
