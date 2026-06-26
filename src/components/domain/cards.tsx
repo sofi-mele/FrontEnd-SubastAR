@@ -79,7 +79,7 @@ export function PaymentMethodCard({ payment, selected }: { payment: PaymentMetho
         {payment.availableAmount != null ? <Text style={styles.priceSmall}>{formatMoney(payment.availableAmount)}</Text> : null}
       </View>
       <View style={styles.paymentStatus}>
-        <Badge label={payment.verified ? 'Verificado' : 'Pendiente'} tone={payment.verified ? 'green' : 'yellow'} />
+        <Badge label={payment.verified ? 'Verificado' : payment.rejected ? 'Rechazado' : 'Pendiente'} tone={payment.verified ? 'green' : payment.rejected ? 'red' : 'yellow'} />
         {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.primary} /> : null}
       </View>
     </Card>

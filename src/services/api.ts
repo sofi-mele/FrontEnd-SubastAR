@@ -57,7 +57,7 @@ type BackendLive = {
   item_actual?: BackendLot; mejor_oferta?: number; puja_minima?: number; puja_maxima?: number;
   segundos_restantes?: number; historial_pujas?: BackendBid[];
 };
-type BackendPayment = { id: number; tipo: string; descripcion: string; verificado: boolean; monto_disponible?: number };
+type BackendPayment = { id: number; tipo: string; descripcion: string; verificado: boolean; monto_disponible?: number; estado?: string };
 type BackendAssetPhoto = {
   codigo_foto: string; nombre_archivo?: string | null; public_id?: string | null; url?: string | null; tipo?: string | null;
 };
@@ -508,14 +508,19 @@ export const profileService = {
 
 export const paymentService = {
   async list(): Promise<PaymentMethod[]> {
-    return (await request<BackendPayment[]>(apiRoutes.payments)).map((payment) => ({
-      id: String(payment.id),
-      type: payment.tipo === 'tarjeta_credito' ? 'Tarjeta' : payment.tipo === 'cuenta_bancaria' ? 'Cuenta bancaria' : 'Cheque certificado',
-      label: payment.descripcion,
-      detail: payment.verificado ? 'Verificado' : 'Pendiente de verificación',
-      verified: payment.verificado,
-      availableAmount: payment.monto_disponible,
-    }));
+    return (await request<BackendPayment[]>(apiRoutes.payments)).map((payment) => {
+      const estado = payment.estado?.toLowerCase();
+      const rejected = estado === 'rechazado' || estado === 'rejected';
+      return {
+        id: String(payment.id),
+        type: payment.tipo === 'tarjeta_credito' ? 'Tarjeta' : payment.tipo === 'cuenta_bancaria' ? 'Cuenta bancaria' : 'Cheque certificado',
+        label: payment.descripcion,
+        detail: payment.verificado ? 'Verificado' : rejected ? 'Rechazado' : 'Pendiente de verificación',
+        verified: payment.verificado,
+        rejected,
+        availableAmount: payment.monto_disponible,
+      };
+    });
   },
   async create(input: PaymentMethodCreate) {
     const form = new FormData();

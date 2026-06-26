@@ -80,6 +80,7 @@ export interface PaymentMethod {
   detail: string;
   primary?: boolean;
   verified?: boolean;
+  rejected?: boolean;
   availableAmount?: number;
 }
 
