@@ -52,10 +52,7 @@ export function ProfileScreen() {
         <Divider />
         <ActionRow icon="warning-outline" label="Multas" onPress={() => router.push('/profile/account-status')} />
       </Card>
-      <Card style={styles.menuBlock}>
-        <SectionHeader title="Gestión financiera" subtitle="Coberturas y respaldo de tus compras" />
-        <ActionRow icon="shield-checkmark-outline" label="Seguros y Pólizas" onPress={() => router.push('/profile/policies')} />
-      </Card>
+
       <Button label="Cerrar sesión" variant="ghost" onPress={async () => {
         try { await authService.logout(); } finally { await signOut(); router.replace('/welcome'); }
       }} />
