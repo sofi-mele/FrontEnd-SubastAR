@@ -52,6 +52,7 @@ export const apiRoutes = {
   purchases: '/compras',
   purchase: (id: string) => `/compras/${id}`,
   regularizePurchase: (id: string) => `/compras/${id}/regularizar-pago`,
+  deliveryPreference: (id: string) => `/compras/${id}/preferencia-entrega`,
   invoice: (id: string) => `/compras/${id}/factura`,
   invoiceDownload: (id: string) => `/compras/${id}/factura/download`,
   user: '/usuarios/me',

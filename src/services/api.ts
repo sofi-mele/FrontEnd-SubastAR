@@ -557,6 +557,11 @@ export const purchaseService = {
       method: 'POST', body: JSON.stringify({ medio_pago_id: Number(paymentId) }),
     }));
   },
+  async setDeliveryPreference(id: string, preference: 'retiro' | 'envio', address?: string) {
+    return mapPurchase(await request<BackendPurchase>(apiRoutes.deliveryPreference(id), {
+      method: 'POST', body: JSON.stringify({ preferencia: preference, ...(address ? { direccion: address } : {}) }),
+    }));
+  },
   async invoice(id: string) {
     return request<{ message: string; url: string }>(apiRoutes.invoice(id));
   },
