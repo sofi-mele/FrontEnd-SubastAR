@@ -3,6 +3,8 @@ import { Image, StyleSheet, View } from 'react-native';
 const brandIconSource = require('@/assets/images/subastar-logo-icon.png');
 const brandWordmarkSource = require('@/assets/images/subastar-wordmark.png');
 
+//holanda
+
 export function BrandIcon({ size = 80 }: { size?: number }) {
   return (
     <Image
