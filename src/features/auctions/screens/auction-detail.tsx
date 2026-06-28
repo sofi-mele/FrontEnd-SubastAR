@@ -30,7 +30,6 @@ export function AuctionDetailScreen() {
           <InfoTile icon="cash-outline" label="Moneda" value={auction.currency} />
         </View>
         <Divider />
-        <InfoRow icon="location-outline" label="Lugar" value={auction.location} />
         <InfoRow icon="person-outline" label="Rematador" value={auction.auctioneer} />
       </Card>
       <Card style={styles.metricCard}>
