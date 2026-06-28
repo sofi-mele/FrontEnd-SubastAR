@@ -17,6 +17,7 @@ export function CollectionAccountsScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
   const [showForm, setShowForm] = useState(false);
+  const [selectedId, setSelectedId] = useState<string>();
   const [bank, setBank] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [country, setCountry] = useState('Argentina');
@@ -63,20 +64,29 @@ export function CollectionAccountsScreen() {
       />
       {accounts?.length ? (
         <>
-          <SectionHeader title="Cuentas declaradas" subtitle="Ya tenés una cuenta registrada" />
-          {accounts.map((account) => (
-            <Card key={account.id} style={styles.accountCard}>
-              <View style={styles.row}>
-                <View style={styles.copy}>
-                  <Text style={styles.bankName}>{account.bankName}</Text>
-                  <Body muted>{account.identifier}</Body>
-                  <Body muted>{account.country} · {account.currency}</Body>
-                </View>
-                <Ionicons name="checkmark-circle" size={22} color={colors.success} />
-              </View>
-            </Card>
-          ))}
-          <Button label="Continuar" onPress={() => router.replace((returnTo ?? '/profile/assets') as Href)} />
+          <SectionHeader title="Cuentas declaradas" subtitle="Elegí la cuenta donde querés recibir el pago" />
+          {accounts.map((account) => {
+            const selected = selectedId === account.id;
+            return (
+              <Pressable key={account.id} onPress={() => setSelectedId(account.id)}>
+                <Card style={[styles.accountCard, selected && styles.accountCardSelected]}>
+                  <View style={styles.row}>
+                    <View style={styles.copy}>
+                      <Text style={styles.bankName}>{account.bankName}</Text>
+                      <Body muted>{account.identifier}</Body>
+                      <Body muted>{account.country} · {account.currency}</Body>
+                    </View>
+                    <Ionicons
+                      name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={22}
+                      color={selected ? colors.success : colors.border}
+                    />
+                  </View>
+                </Card>
+              </Pressable>
+            );
+          })}
+          <Button label="Continuar" disabled={!selectedId} onPress={() => router.replace((returnTo ?? '/profile/assets') as Href)} />
           {!showForm ? (
             <Button label="Agregar otra cuenta" variant="ghost" icon="add-outline" onPress={() => setShowForm(true)} />
           ) : null}
@@ -112,6 +122,7 @@ export function CollectionAccountsScreen() {
 
 const styles = StyleSheet.create({
   accountCard: { gap: spacing.sm },
+  accountCardSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   formCard: { gap: spacing.md },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
   copy: { flex: 1, gap: 2 },
