@@ -177,11 +177,12 @@ export function LiveAuctionScreen() {
     const s = seconds % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
+  const base = data.bestBid > 0 ? data.bestBid : data.lot.basePrice;
   const quickAmounts = [
     { label: 'Mínima', value: data.minBid },
-    { label: '+1%', value: Math.max(data.minBid, data.bestBid > 0 ? data.bestBid + data.lot.basePrice * 0.01 : data.minBid) },
-    { label: '+5%', value: Math.max(data.minBid, (data.bestBid || data.lot.basePrice) + data.lot.basePrice * 0.05) },
-    { label: '+10%', value: Math.max(data.minBid, (data.bestBid || data.lot.basePrice) + data.lot.basePrice * 0.1) },
+    { label: '+5%', value: Math.min(Math.max(data.minBid, base + data.lot.basePrice * 0.05), data.maxBid ?? Infinity) },
+    { label: '+10%', value: Math.min(Math.max(data.minBid, base + data.lot.basePrice * 0.10), data.maxBid ?? Infinity) },
+    { label: 'Máxima', value: data.maxBid ?? Math.max(data.minBid, base + data.lot.basePrice * 0.20) },
   ];
   const amountValue = Number(amount);
   const hasInvalidAmount = !!amount && !Number.isFinite(amountValue);
@@ -248,7 +249,7 @@ export function LiveAuctionScreen() {
             )}
             <Button
               label={bidMutation.isPending ? 'Enviando...' : 'Pujar ahora'}
-              disabled={bidMutation.isPending || !paymentId || !amount.trim() || !Number.isFinite(amountValue) || amountValue < data.minBid}
+              disabled={bidMutation.isPending || !paymentId || !amount.trim() || !Number.isFinite(amountValue) || amountValue < data.minBid || (data.maxBid != null && amountValue > data.maxBid)}
               onPress={() => bidMutation.mutate()}
             />
             {bidMutation.isError ? <Body muted>{errorToUserMessage(bidMutation.error, 'No fue posible registrar la puja.')}</Body> : null}
