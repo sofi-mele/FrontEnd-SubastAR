@@ -210,7 +210,7 @@ export function LiveAuctionScreen() {
             <Text style={styles.timerNumber}>{displaySecondsLeft}</Text>
           </View>
           <Text style={styles.timerText}>
-            {'Últimos segundos. El backend confirmará el cierre del lote.'}
+            {'Últimos segundos. El equipo confirmará el cierre del lote.'}
             {currentLeader ? <Text style={styles.timerBidder}>{`\nOferta líder: ${currentLeader}`}</Text> : null}
           </Text>
         </View>
