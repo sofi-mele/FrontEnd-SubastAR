@@ -559,7 +559,7 @@ export const purchaseService = {
   },
   async setDeliveryPreference(id: string, preference: 'retiro' | 'envio', address?: string) {
     return mapPurchase(await request<BackendPurchase>(apiRoutes.deliveryPreference(id), {
-      method: 'POST', body: JSON.stringify({ preferencia: preference, ...(address ? { direccion: address } : {}) }),
+      method: 'POST', body: JSON.stringify({ tipo: preference, ...(address ? { direccion: address } : {}) }),
     }));
   },
   async invoice(id: string) {
