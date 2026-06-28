@@ -10,6 +10,7 @@ import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { useSession } from '@/providers/app-provider';
 import { auctionService, paymentService } from '@/services/api';
+import { errorToUserMessage } from '@/services/errors';
 import { addRealtimeStatusListener, subscribeToAuction, subscribeToUserBidEvents } from '@/services/realtime';
 import type { AuctionRealtimeEvent, Bid } from '@/types/domain';
 import { BidHistoryRow } from '@/features/auctions/components/bid-history-row';
@@ -250,6 +251,8 @@ export function LiveAuctionScreen() {
               disabled={bidMutation.isPending || !paymentId || !amount.trim() || !Number.isFinite(amountValue) || amountValue < data.minBid}
               onPress={() => bidMutation.mutate()}
             />
+            {bidMutation.isError ? <Body muted>{errorToUserMessage(bidMutation.error, 'No fue posible registrar la puja.')}</Body> : null}
+            {bidMutation.isSuccess ? <Body muted>¡Tu puja fue registrada!</Body> : null}
           </>
         ) : (
           <>
