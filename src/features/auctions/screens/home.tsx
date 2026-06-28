@@ -23,9 +23,12 @@ export function HomeScreen() {
   const featured = data?.find((a) => a.status === 'En vivo') ?? data?.find((a) => a.status === 'Próximas');
   if (accountState?.status === 'Bloqueado') {
     return (
-      <Screen>
-        <Header title="Inicio bloqueado" />
-        <StatusState icon="lock-closed-outline" title="Tu cuenta está bloqueada" message={accountState.message ?? 'No podés operar mientras la cuenta permanezca bloqueada.'} tone="red" actionLabel="Ver estado de cuenta" onAction={() => router.push('/profile/account-status')} />
+      <Screen style={styles.blockedScreen}>
+        <View style={styles.blockedIcon}>
+          <Ionicons name="lock-closed" size={40} color="#C0392B" />
+        </View>
+        <Text style={styles.blockedTitle}>Acceso restringido</Text>
+        <Text style={styles.blockedMessage}>{accountState.message ?? 'Tu cuenta tiene una multa pendiente.\nTu caso fue derivado a la justicia'}</Text>
       </Screen>
     );
   }
@@ -77,6 +80,10 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  blockedScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, paddingHorizontal: spacing.xl },
+  blockedIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#FDECEA', alignItems: 'center', justifyContent: 'center' },
+  blockedTitle: { fontSize: typography.headline, fontFamily: fonts.black, color: '#C0392B', textAlign: 'center' },
+  blockedMessage: { fontSize: typography.body, fontFamily: fonts.regular, color: colors.textMuted, textAlign: 'center', lineHeight: 24 },
   tileRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   homeHero: { gap: spacing.lg, backgroundColor: colors.surfaceAlt, borderColor: colors.primaryBorder },
   heroHeader: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },

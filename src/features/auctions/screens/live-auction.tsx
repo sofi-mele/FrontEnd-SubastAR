@@ -9,7 +9,7 @@ import { Body, Button, Card, EmptyState, ErrorState, Header, InfoTile, Input, Lo
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { useSession } from '@/providers/app-provider';
-import { auctionService, paymentService } from '@/services/api';
+import { auctionService, paymentService, profileService } from '@/services/api';
 import { errorToUserMessage } from '@/services/errors';
 import { addRealtimeStatusListener, subscribeToAuction, subscribeToUserBidEvents } from '@/services/realtime';
 import type { AuctionRealtimeEvent, Bid } from '@/types/domain';
@@ -58,6 +58,7 @@ export function LiveAuctionScreen() {
   });
   const { data: paymentData } = useQuery({ queryKey: ['payments'], queryFn: paymentService.list });
   const { data: auction } = useQuery({ queryKey: ['auction', id], queryFn: () => auctionService.get(id), enabled: !!id });
+  const { data: accountState } = useQuery({ queryKey: ['account-state'], queryFn: profileService.accountState, enabled: !!session });
   const usablePayments = paymentData?.filter((payment) => payment.verified) ?? [];
   useEffect(() => {
     if (data?.lot?.id) setLastLotId(data.lot.id);
@@ -217,7 +218,11 @@ export function LiveAuctionScreen() {
       )}
       <Card style={styles.bidPanel}>
         <SectionHeader title="Consola de puja" subtitle="Elegí un monto rápido o ingresalo manualmente" />
-        {session ? (
+        {session && accountState?.status === 'Multado' ? (
+          <StatusState icon="warning-outline" title="Cuenta multada" message="Tenés una multa pendiente de pago. Regularizá tu situación para volver a pujar." tone="red" actionLabel="Ver multas" onAction={() => router.push('/profile/account-status')} />
+        ) : session && accountState?.status === 'Bloqueado' ? (
+          <StatusState icon="lock-closed-outline" title="Cuenta bloqueada" message="Tu acceso fue restringido. Contactá al soporte." tone="red" />
+        ) : session ? (
           <>
             <Body muted>Mejor oferta actual</Body>
             <Text style={styles.offer}>{data.bestBid > 0 ? formatAuctionMoney(data.bestBid, currency) : 'Sin ofertas todavía'}</Text>
@@ -255,7 +260,7 @@ export function LiveAuctionScreen() {
             {bidMutation.isError ? <Body muted>{errorToUserMessage(bidMutation.error, 'No fue posible registrar la puja.')}</Body> : null}
             {bidMutation.isSuccess ? <Body muted>¡Tu puja fue registrada!</Body> : null}
           </>
-        ) : (
+        ) : !session ? (
           <>
             <StatusState icon="lock-closed-outline" title="Iniciá sesión para poder pujar en esta subasta" tone="yellow" />
             <Button label="Iniciar sesión" onPress={() => router.push({ pathname: '/login', params: { returnTo: `/live/${id}` } })} />
