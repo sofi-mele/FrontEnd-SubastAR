@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuctionCard } from '@/components/domain/cards';
 import { AuthRequiredModal, Badge, Body, Card, EmptyState, ErrorState, Header, InfoTile, LoadingState, Screen, SectionHeader, StatusState } from '@/components/ui/primitives';
@@ -62,14 +62,6 @@ export function HomeScreen() {
         <View style={styles.flex}>
           <Text style={styles.sellTitle}>Subir bien</Text>
           <Text style={styles.heroBodyDark}>Publicá un bien para subastar</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-      </Pressable>
-      <Pressable style={styles.quickHero} onPress={() => session ? Linking.openURL('https://streaming.subastar.com') : setRequiresAuth(true)}>
-        <Ionicons name="play-circle-outline" size={27} color={colors.primary} />
-        <View style={styles.flex}>
-          <Text style={styles.sellTitle}>Streaming</Text>
-          <Text style={styles.heroBodyDark}>Seguí las subastas en vivo</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.primary} />
       </Pressable>
