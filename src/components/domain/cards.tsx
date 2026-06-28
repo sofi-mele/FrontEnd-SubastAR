@@ -25,7 +25,7 @@ export function AuctionCard({ auction, onPress }: { auction: Auction; onPress: (
         </View>
         <View style={styles.auctionMetaGrid}>
           <MetaPill icon="calendar-outline" value={formatAuctionDate(auction.date)} />
-          <MetaPill icon="location-outline" value={auction.location} />
+
           <MetaPill icon="cash-outline" value={auction.currency} />
           <MetaPill icon="albums-outline" value={`${auction.totalLots} lotes`} />
         </View>
