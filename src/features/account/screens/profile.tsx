@@ -21,7 +21,7 @@ export function ProfileScreen() {
     queries: penaltyPurchaseIds.map((id) => ({ queryKey: ['purchase', id], queryFn: () => purchaseService.get(id) })),
   });
   const totalPending = penaltyPurchaseQueries.length > 0
-    ? penaltyPurchaseQueries.reduce((sum, q) => sum + (q.data?.total ?? (q.data ? q.data.amount + q.data.fee + q.data.penalty : 0)), 0)
+    ? penaltyPurchaseQueries.reduce((sum, q) => sum + (q.data ? q.data.amount + q.data.fee + q.data.penalty : 0), 0)
     : accountState?.penalty ?? 0;
   if (!session) return <Screen><Header title="Perfil" /><GuestNotice /></Screen>;
   if (isLoading) return <Screen><LoadingState /></Screen>;

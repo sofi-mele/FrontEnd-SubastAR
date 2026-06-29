@@ -59,7 +59,7 @@ export function AccountStatusScreen() {
             const purchaseIndex = purchaseIds.indexOf(penalty.purchaseId ?? '');
             const purchaseData = purchaseIndex >= 0 ? purchaseQueries[purchaseIndex]?.data : undefined;
             const totalAmount = purchaseData
-              ? (purchaseData.total ?? purchaseData.amount + purchaseData.fee + purchaseData.penalty)
+              ? purchaseData.amount + purchaseData.fee + purchaseData.penalty
               : penalty.amount;
             return (
               <Card key={penalty.id ?? index} style={styles.penaltyDetailCard}>
