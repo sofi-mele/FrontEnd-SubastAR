@@ -31,6 +31,13 @@ export function PurchasePaymentScreen() {
       router.replace(`/purchases/${id}`);
     },
   });
+  const insolvency = useMutation({
+    mutationFn: () => purchaseService.declareInsolvency(id ?? ''),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['account-state'] });
+      router.replace('/(tabs)');
+    },
+  });
   if (loadingPurchase || loadingPayments) return <Screen><LoadingState /></Screen>;
   if (purchaseError || paymentsError || !purchase) return <Screen><Header title="Regularizar pago" onBack={back} /><ErrorState /></Screen>;
   return (
@@ -49,7 +56,18 @@ export function PurchasePaymentScreen() {
       )}
       <Button label={pay.isPending ? 'Confirmando pago...' : 'Confirmar pago'} disabled={!paymentId || pay.isPending} onPress={() => pay.mutate()} />
       {!usablePayments.length ? <Button label="Agregar medio de pago" variant="secondary" onPress={() => router.push('/profile/payments')} /> : null}
-      {pay.isError ? <Body muted>{errorToUserMessage(pay.error, 'No fue posible regularizar el pago.')}</Body> : null}
+      {pay.isError ? (
+        <>
+          <Body muted>{errorToUserMessage(pay.error, 'No fue posible regularizar el pago.')}</Body>
+          <Button
+            label={insolvency.isPending ? 'Procesando...' : 'No poseo el monto suficiente'}
+            variant="secondary"
+            disabled={insolvency.isPending}
+            onPress={() => insolvency.mutate()}
+          />
+          {insolvency.isError ? <Body muted>{errorToUserMessage(insolvency.error, 'No fue posible procesar la declaración.')}</Body> : null}
+        </>
+      ) : null}
     </Screen>
   );
 }
