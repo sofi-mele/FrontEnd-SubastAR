@@ -55,19 +55,15 @@ export function PurchasePaymentScreen() {
         <EmptyState title="Sin medios habilitados" message="Agregá o verificá un medio de pago antes de regularizar la compra." />
       )}
       <Button label={pay.isPending ? 'Confirmando pago...' : 'Confirmar pago'} disabled={!paymentId || pay.isPending} onPress={() => pay.mutate()} />
+      {pay.isError ? <Body muted>{errorToUserMessage(pay.error, 'No fue posible regularizar el pago.')}</Body> : null}
       {!usablePayments.length ? <Button label="Agregar medio de pago" variant="secondary" onPress={() => router.push('/profile/payments')} /> : null}
-      {pay.isError ? (
-        <>
-          <Body muted>{errorToUserMessage(pay.error, 'No fue posible regularizar el pago.')}</Body>
-          <Button
-            label={insolvency.isPending ? 'Procesando...' : 'No poseo el monto suficiente'}
-            variant="secondary"
-            disabled={insolvency.isPending}
-            onPress={() => insolvency.mutate()}
-          />
-          {insolvency.isError ? <Body muted>{errorToUserMessage(insolvency.error, 'No fue posible procesar la declaración.')}</Body> : null}
-        </>
-      ) : null}
+      <Button
+        label={insolvency.isPending ? 'Procesando...' : 'No cuento con el dinero suficiente'}
+        variant="ghost"
+        disabled={insolvency.isPending}
+        onPress={() => insolvency.mutate()}
+      />
+      {insolvency.isError ? <Body muted>{errorToUserMessage(insolvency.error, 'No fue posible procesar la declaración.')}</Body> : null}
     </Screen>
   );
 }
