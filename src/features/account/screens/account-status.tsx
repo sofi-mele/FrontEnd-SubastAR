@@ -53,12 +53,17 @@ export function AccountStatusScreen() {
         </Card>
       ) : penalties?.length ? (
         <View style={styles.penaltiesList}>
-          {penalties.map((penalty) => {
+          {penalties.map((penalty, index) => {
             const penaltyDate = formatPenaltyDate(penalty.date);
             const purchaseReference = penalty.purchaseId ?? penalty.registrationId;
+            const purchaseIndex = purchaseIds.indexOf(penalty.purchaseId ?? '');
+            const purchaseData = purchaseIndex >= 0 ? purchaseQueries[purchaseIndex]?.data : undefined;
+            const totalAmount = purchaseData
+              ? (purchaseData.total ?? purchaseData.amount + purchaseData.fee + purchaseData.penalty)
+              : penalty.amount;
             return (
-              <Card key={penalty.id} style={styles.penaltyDetailCard}>
-                <SummaryRow label="Monto" value={formatCurrency(penalty.amount)} bold />
+              <Card key={penalty.id ?? index} style={styles.penaltyDetailCard}>
+                <SummaryRow label="Monto" value={formatCurrency(totalAmount)} bold />
                 <SummaryRow label="Estado" value={penalty.status} />
                 {penalty.reason ? <SummaryRow label="Motivo" value={penalty.reason} /> : null}
                 {penaltyDate ? <SummaryRow label="Fecha" value={penaltyDate} /> : null}
