@@ -153,7 +153,19 @@ export function LiveAuctionScreen() {
   }, []);
 
   if (isLoading) return <Screen><LoadingState /></Screen>;
-  if (isError || !data) return <Screen><Header title="Subasta en vivo" onBack={back} /><ErrorState message={errorToUserMessage(error, 'No pudimos cargar la subasta.')} onRetry={() => refetch()} /></Screen>;
+  if (isError || !data) return (
+    <Screen>
+      <Header title="Subasta en vivo" onBack={back} />
+      <StatusState
+        icon="wallet-outline"
+        title="No se pudo cargar la subasta"
+        message={errorToUserMessage(error, 'No pudimos cargar la subasta.')}
+        tone="red"
+        actionLabel="Registrar medio de pago"
+        onAction={() => router.push('/profile/payments')}
+      />
+    </Screen>
+  );
   if (auctionFinished || !data.lot) return (
     <Screen>
       <Header title="Subasta en vivo" onBack={back} />
