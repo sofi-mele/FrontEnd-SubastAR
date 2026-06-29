@@ -44,7 +44,7 @@ export function PurchasePaymentScreen() {
     <Screen>
       <Header title="Regularizar pago" onBack={back} />
       <Title>{purchase.lot.title}</Title>
-      <SummaryRow label="Monto a regularizar" value={formatCurrency(purchase.total ?? purchase.amount + purchase.fee + purchase.penalty + (purchase.shippingCost ?? 0))} bold />
+      <SummaryRow label="Monto a regularizar" value={formatCurrency(purchase.amount + purchase.fee + purchase.penalty + (purchase.shippingCost ?? 0))} bold />
       <Body muted>Seleccioná un medio verificado para confirmar el pago pendiente.</Body>
       <SectionHeader title="Medios verificados" subtitle="Usá un medio aprobado para completar el pago" />
       {usablePayments.length ? usablePayments.map((payment) => (
