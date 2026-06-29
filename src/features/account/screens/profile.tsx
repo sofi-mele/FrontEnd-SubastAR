@@ -1,19 +1,28 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ActionRow, Badge, Body, Button, Card, Divider, ErrorState, Header, IconButton, InfoTile, LoadingState, Screen, SectionHeader, SecurityNote } from '@/components/ui/primitives';
 import { colors, fonts, radius, spacing } from '@/constants/theme';
 import { useSession } from '@/providers/app-provider';
-import { authService, profileService } from '@/services/api';
+import { authService, profileService, purchaseService } from '@/services/api';
 import { GuestNotice } from '@/features/account/components/guest-notice';
 import { StatusState } from '@/components/ui/primitives';
+import { formatCurrency } from '@/components/domain/cards';
 
 export function ProfileScreen() {
   const router = useRouter();
   const { session, signOut } = useSession();
   const { data: profile, isLoading, isError, refetch } = useQuery({ queryKey: ['profile'], queryFn: profileService.me, enabled: !!session });
   const { data: accountState } = useQuery({ queryKey: ['account-state'], queryFn: profileService.accountState, enabled: !!session });
+  const { data: penalties } = useQuery({ queryKey: ['penalties'], queryFn: profileService.penalties, enabled: !!session && accountState?.status === 'Multado' });
+  const penaltyPurchaseIds = (penalties ?? []).map((p) => p.purchaseId).filter(Boolean) as string[];
+  const penaltyPurchaseQueries = useQueries({
+    queries: penaltyPurchaseIds.map((id) => ({ queryKey: ['purchase', id], queryFn: () => purchaseService.get(id) })),
+  });
+  const totalPending = penaltyPurchaseQueries.length > 0
+    ? penaltyPurchaseQueries.reduce((sum, q) => sum + (q.data?.total ?? (q.data ? q.data.amount + q.data.fee + q.data.penalty : 0)), 0)
+    : accountState?.penalty ?? 0;
   if (!session) return <Screen><Header title="Perfil" /><GuestNotice /></Screen>;
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !profile) return <Screen><Header title="Perfil" /><ErrorState onRetry={() => refetch()} /></Screen>;
@@ -32,7 +41,7 @@ export function ProfileScreen() {
         <SecurityNote text="Usamos tus datos para validar pujas, pagos y accesos de forma segura." />
       </Card>
       {accountState?.status === 'Multado' ? (
-        <StatusState icon="warning-outline" title="Multa pendiente de pago" message={accountState.message ?? 'Regularizá tu cuenta para volver a participar en subastas.'} tone="red" />
+        <StatusState icon="warning-outline" title="Multa pendiente de pago" message={`Tenés un importe pendiente de ${formatCurrency(totalPending)}. Regularizá tu situación para volver a participar en subastas.`} tone="red" />
       ) : null}
       <Card style={styles.menuBlock}>
         <SectionHeader title="Cuenta" subtitle="Accedé a tu información y actividad" />
