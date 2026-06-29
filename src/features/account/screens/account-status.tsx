@@ -43,7 +43,7 @@ export function AccountStatusScreen() {
   return (
     <Screen>
       <Header title="Estado de cuenta" onBack={back} />
-      <StatusState icon={regular ? 'checkmark-circle-outline' : blocked ? 'lock-closed-outline' : 'alert-circle-outline'} title={title} message={data.message ? `${description} ${data.message}` : description} tone={regular ? 'green' : 'red'} />
+      <StatusState icon={regular ? 'checkmark-circle-outline' : blocked ? 'lock-closed-outline' : 'alert-circle-outline'} title={title} message={!regular && totalPending > 0 ? `${description} Importe total pendiente: ${formatCurrency(totalPending)}.` : description} tone={regular ? 'green' : 'red'} />
       {totalPending > 0 ? <Card style={styles.penaltyCard}><Body muted>Importe pendiente</Body><Text style={styles.penalty}>{formatCurrency(totalPending)}</Text></Card> : null}
       <SectionHeader title="Multas" subtitle="Detalle informado por tu cuenta" />
       {penaltiesLoading ? <Card><Body muted>Cargando multas...</Body></Card> : penaltiesError ? (
