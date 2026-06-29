@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -6,7 +6,7 @@ import { formatCurrency } from '@/components/domain/cards';
 import { Body, Button, Card, ErrorState, Header, LoadingState, Screen, SectionHeader, StatusState } from '@/components/ui/primitives';
 import { colors, fonts, spacing, typography } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
-import { profileService } from '@/services/api';
+import { profileService, purchaseService } from '@/services/api';
 import { SummaryRow } from '@/features/account/components/summary-row';
 
 function formatPenaltyDate(value?: string) {
@@ -23,6 +23,13 @@ export function AccountStatusScreen() {
     queryKey: ['penalties'],
     queryFn: profileService.penalties,
   });
+  const purchaseIds = (penalties ?? []).map((p) => p.purchaseId).filter(Boolean) as string[];
+  const purchaseQueries = useQueries({
+    queries: purchaseIds.map((id) => ({ queryKey: ['purchase', id], queryFn: () => purchaseService.get(id) })),
+  });
+  const totalPending = purchaseQueries.length > 0
+    ? purchaseQueries.reduce((sum, q) => sum + (q.data?.total ?? q.data ? (q.data.amount + q.data.fee + q.data.penalty) : 0), 0)
+    : data?.penalty ?? 0;
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !data) return <Screen><Header title="Estado de cuenta" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
   const regular = data.status === 'Regular';
@@ -37,7 +44,7 @@ export function AccountStatusScreen() {
     <Screen>
       <Header title="Estado de cuenta" onBack={back} />
       <StatusState icon={regular ? 'checkmark-circle-outline' : blocked ? 'lock-closed-outline' : 'alert-circle-outline'} title={title} message={data.message ? `${description} ${data.message}` : description} tone={regular ? 'green' : 'red'} />
-      {data.penalty > 0 ? <Card style={styles.penaltyCard}><Body muted>Importe pendiente</Body><Text style={styles.penalty}>{formatCurrency(data.penalty)}</Text></Card> : null}
+      {totalPending > 0 ? <Card style={styles.penaltyCard}><Body muted>Importe pendiente</Body><Text style={styles.penalty}>{formatCurrency(totalPending)}</Text></Card> : null}
       <SectionHeader title="Multas" subtitle="Detalle informado por tu cuenta" />
       {penaltiesLoading ? <Card><Body muted>Cargando multas...</Body></Card> : penaltiesError ? (
         <Card style={styles.penaltiesError}>
