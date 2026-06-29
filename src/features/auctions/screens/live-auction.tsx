@@ -262,10 +262,10 @@ export function LiveAuctionScreen() {
           </>
         ) : !session ? (
           <>
-            <StatusState icon="lock-closed-outline" title="Iniciá sesión para poder pujar en esta subasta" tone="yellow" />
+            <StatusState icon="lock-closed-outline" title="Iniciá sesión para poder pujar en esta subasta" message="Creá una cuenta o iniciá sesión para participar." tone="yellow" />
             <Button label="Iniciar sesión" onPress={() => router.push({ pathname: '/login', params: { returnTo: `/live/${id}` } })} />
           </>
-        )}
+        ) : null}
       </Card>
       <SectionHeader title="Historial de pujas" subtitle="Últimas ofertas registradas" />
       <Card style={styles.historyCard}>
