@@ -26,7 +26,13 @@ export function AuctionsScreen() {
     queryFn: () => auctionService.list({ search: debouncedSearch, status, category, currency }),
   });
   const statusChips = ['Todas', 'En vivo', 'Próximas'];
-  const visibleAuctions = data?.filter((a) => a.status !== 'Finalizada');
+  const visibleAuctions = data
+    ?.filter((a) => a.status !== 'Finalizada')
+    .sort((a, b) => {
+      if (a.status === 'En vivo' && b.status !== 'En vivo') return -1;
+      if (a.status !== 'En vivo' && b.status === 'En vivo') return 1;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
   return (
     <Screen>
       <Header title="Subastas" right={<IconButton icon="options-outline" accessibilityLabel="Filtros" tone="primary" onPress={() => router.push('/auction-filters')} />} />
