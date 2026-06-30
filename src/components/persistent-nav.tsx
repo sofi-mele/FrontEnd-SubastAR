@@ -5,26 +5,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, fonts, radius, spacing } from '@/constants/theme';
+import { PERSISTENT_NAV_HIDDEN_PATHS as HIDDEN_PATHS } from '@/hooks/use-nav-height';
 import { useSession } from '@/providers/app-provider';
 import { chatService } from '@/services/api';
-
-const HIDDEN_PATHS = new Set([
-  '/',
-  '/auctions',
-  '/chat',
-  '/profile',
-  '/welcome',
-  '/login',
-  '/register',
-  '/registration-pending',
-  '/verify',
-  '/password',
-  '/forgot-password',
-  '/reset-password',
-  '/onboarding-payment',
-  '/offline',
-  '/payment-success',
-]);
 
 const TABS = [
   { key: 'inicio',    label: 'Inicio',    icon: 'home-outline'                  as const, href: '/(tabs)'          },

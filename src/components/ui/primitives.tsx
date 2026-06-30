@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandWordmark } from '@/components/brand/logo';
 import { colors, deepShadow, fonts, radius, shadow, spacing, typography, MaxContentWidth } from '@/constants/theme';
+import { useNavHeight } from '@/hooks/use-nav-height';
 import { normalizeServerMessage } from '@/services/errors';
 
 const buttonIconColors = {
@@ -35,13 +36,14 @@ export function Screen({
   contentContainerStyle,
   bottomInset = 0,
 }: PropsWithChildren<{ scroll?: boolean; style?: StyleProp<ViewStyle>; contentContainerStyle?: StyleProp<ViewStyle>; bottomInset?: number }>) {
+  const navHeight = useNavHeight();
   const content = scroll
     ? <View style={[styles.content, style]}>{children}</View>
     : <View style={[{ flex: 1, width: '100%' }, style]}>{children}</View>;
   return (
     <SafeAreaView style={styles.safe}>
       {scroll ? (
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xl + bottomInset }, contentContainerStyle]} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xl + bottomInset + navHeight }, contentContainerStyle]} showsVerticalScrollIndicator={false}>
           {content}
         </ScrollView>
       ) : content}
