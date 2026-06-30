@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AppProvider } from '@/providers/app-provider';
+import { PersistentNav } from '@/components/persistent-nav';
 
 NativeSplashScreen.setOptions({ duration: 700, fade: true });
 
@@ -31,6 +32,7 @@ export default function RootLayout() {
       <AppProvider>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />
+        <PersistentNav />
       </AppProvider>
     </GestureHandlerRootView>
   );
