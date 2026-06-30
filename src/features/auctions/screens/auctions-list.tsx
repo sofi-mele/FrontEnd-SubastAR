@@ -11,7 +11,8 @@ import { auctionService } from '@/services/api';
 
 export function AuctionsScreen() {
   const router = useRouter();
-  const { isGuest } = useSession();
+  const { session } = useSession();
+  const isGuest = !session;
   const params = useLocalSearchParams<{ status?: string; category?: string; currency?: string }>();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
