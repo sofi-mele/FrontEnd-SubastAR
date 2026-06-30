@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/primitives';
 import { formatCurrency } from '@/components/domain/cards';
 import { colors, fonts, spacing, typography } from '@/constants/theme';
 
-export function BidHistoryRow({ bidder, amount, timestamp, leader }: { bidder: string; amount: number; timestamp: string; leader?: boolean }) {
+export function BidHistoryRow({ bidder, amount, timestamp, leader, currency }: { bidder: string; amount: number; timestamp: string; leader?: boolean; currency?: string }) {
   return (
     <View style={styles.bidRow}>
       <View style={styles.bidRowCopy}>
@@ -13,7 +13,7 @@ export function BidHistoryRow({ bidder, amount, timestamp, leader }: { bidder: s
       </View>
       <View style={styles.bidRowAmount}>
         {leader ? <Badge label="Líder" tone="green" /> : null}
-        <Text style={styles.price}>{formatCurrency(amount)}</Text>
+        <Text style={styles.price}>{formatCurrency(amount, currency)}</Text>
       </View>
     </View>
   );

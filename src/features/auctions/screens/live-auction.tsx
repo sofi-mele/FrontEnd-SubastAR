@@ -282,7 +282,7 @@ export function LiveAuctionScreen() {
       <SectionHeader title="Historial de pujas" subtitle="Últimas ofertas registradas" />
       <Card style={styles.historyCard}>
         {data.history.map((bid, index) => (
-          <BidHistoryRow key={bid.id} bidder={bid.bidder} amount={bid.amount} timestamp={bid.timestamp} leader={index === 0} />
+          <BidHistoryRow key={bid.id} bidder={bid.bidder} amount={bid.amount} timestamp={bid.timestamp} leader={index === 0} currency={currency} />
         ))}
       </Card>
       <Button label="Ver historial completo" variant="ghost" onPress={() => router.push(`/live/${id}/history?itemId=${data.lot?.id}`)} />

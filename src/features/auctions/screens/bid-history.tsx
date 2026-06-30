@@ -16,6 +16,8 @@ export function BidHistoryScreen() {
     queryFn: () => auctionService.bidHistory(id, itemId ?? ''),
     enabled: !!itemId,
   });
+  const { data: auction } = useQuery({ queryKey: ['auction', id], queryFn: () => auctionService.get(id), enabled: !!id });
+  const currency = auction?.currency ?? 'ARS';
   return (
     <Screen>
       <Header title="Historial de pujas" onBack={back} />
@@ -25,7 +27,7 @@ export function BidHistoryScreen() {
             data?.length ? data.map((bid, index) => (
               <Card key={bid.id} style={styles.historyCard}>
                 <Badge label={index === 0 ? 'Oferta líder' : `Oferta ${index + 1}`} tone={index === 0 ? 'green' : 'purple'} />
-                <Text style={styles.offer}>{formatCurrency(bid.amount)}</Text>
+                <Text style={styles.offer}>{formatCurrency(bid.amount, currency)}</Text>
                 <Body muted>{bid.bidder} - {bid.timestamp}</Body>
               </Card>
             )) : <EmptyState title="Sin pujas registradas" message="Todavía no se realizaron ofertas para este lote." />}
