@@ -35,6 +35,7 @@ export interface Bid {
   bidder: string;
   amount: number;
   timestamp: string;
+  currency?: string;
 }
 
 export type RealtimeEventType =

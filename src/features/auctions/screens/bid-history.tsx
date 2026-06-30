@@ -17,7 +17,7 @@ export function BidHistoryScreen() {
     enabled: !!itemId,
   });
   const { data: auction } = useQuery({ queryKey: ['auction', id], queryFn: () => auctionService.get(id), enabled: !!id });
-  const currency = auction?.currency ?? 'ARS';
+  const currency = data?.find((bid) => bid.currency)?.currency ?? auction?.currency ?? 'ARS';
   return (
     <Screen>
       <Header title="Historial de pujas" onBack={back} />

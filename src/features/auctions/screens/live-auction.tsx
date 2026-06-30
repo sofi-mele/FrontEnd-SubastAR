@@ -182,7 +182,7 @@ export function LiveAuctionScreen() {
       ) : null}
     </Screen>
   );
-  const currency = auction?.currency ?? 'ARS';
+  const currency = data.currency ?? auction?.currency ?? 'ARS';
   const currentLeader = data.history[0]?.bidder ?? null;
   const formatTimer = (seconds?: number): string => {
     if (seconds == null) return '00:--';

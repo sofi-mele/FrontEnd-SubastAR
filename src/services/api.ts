@@ -43,7 +43,7 @@ type BackendLot = {
   id: number; numero_pieza?: string; nombre: string; descripcion?: string; precio_base?: number; imagenes?: string[];
   artista?: string; historia?: string; fecha_creacion?: string; dueno_actual?: string; estado?: string;
 };
-type BackendBid = { id: number; nombre_usuario: string; monto: number; timestamp: string; es_ganadora?: boolean };
+type BackendBid = { id: number; nombre_usuario: string; monto: number; timestamp: string; es_ganadora?: boolean; moneda?: string };
 type BackendResult = {
   estado: string;
   item_id: number;
@@ -55,7 +55,7 @@ type BackendResult = {
 };
 type BackendLive = {
   item_actual?: BackendLot; mejor_oferta?: number; puja_minima?: number; puja_maxima?: number;
-  segundos_restantes?: number; historial_pujas?: BackendBid[];
+  segundos_restantes?: number; historial_pujas?: BackendBid[]; moneda?: string;
 };
 type BackendPayment = { id: number; tipo: string; descripcion: string; verificado: boolean; monto_disponible?: number; estado?: string };
 type BackendAssetPhoto = {
@@ -429,16 +429,17 @@ export const auctionService = {
       maxBid: live.puja_maxima,
       basePrice: live.item_actual?.precio_base ?? 0,
       secondsLeft: live.segundos_restantes,
-      history: (live.historial_pujas ?? []).map((bid) => ({ id: String(bid.id), bidder: bid.nombre_usuario, amount: bid.monto, timestamp: bid.timestamp })),
+      currency: live.moneda,
+      history: (live.historial_pujas ?? []).map((bid): Bid => ({ id: String(bid.id), bidder: bid.nombre_usuario, amount: bid.monto, timestamp: bid.timestamp, currency: bid.moneda })),
     };
   },
   async bid(auctionId: string, amount: number, paymentId: string): Promise<Bid> {
     const bid = await request<BackendBid>(apiRoutes.bids(auctionId), { method: 'POST', body: JSON.stringify({ monto: amount, medio_pago_id: Number(paymentId) }) });
-    return { id: String(bid.id), bidder: bid.nombre_usuario, amount: bid.monto, timestamp: bid.timestamp };
+    return { id: String(bid.id), bidder: bid.nombre_usuario, amount: bid.monto, timestamp: bid.timestamp, currency: bid.moneda };
   },
   async bidHistory(auctionId: string, itemId: string): Promise<Bid[]> {
     return (await request<BackendBid[]>(apiRoutes.bidHistory(auctionId, itemId))).map((bid) => ({
-      id: String(bid.id), bidder: bid.nombre_usuario, amount: bid.monto, timestamp: bid.timestamp,
+      id: String(bid.id), bidder: bid.nombre_usuario, amount: bid.monto, timestamp: bid.timestamp, currency: bid.moneda,
     }));
   },
   async result(auctionId: string, itemId: string): Promise<AuctionResult> {
