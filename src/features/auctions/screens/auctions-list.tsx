@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -8,9 +8,11 @@ import { Chip, EmptyState, ErrorState, Header, IconButton, LoadingState, Screen,
 import { spacing } from '@/constants/theme';
 import { useSession } from '@/providers/app-provider';
 import { auctionService } from '@/services/api';
+import { subscribeToAuctionList } from '@/services/realtime';
 
 export function AuctionsScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { session } = useSession();
   const isGuest = !session;
   const params = useLocalSearchParams<{ status?: string; category?: string; currency?: string }>();
@@ -23,6 +25,12 @@ export function AuctionsScreen() {
     const timeout = setTimeout(() => setDebouncedSearch(search.trim()), 500);
     return () => clearTimeout(timeout);
   }, [search]);
+
+  useEffect(() => {
+    return subscribeToAuctionList(() => {
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+    });
+  }, [queryClient]);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['auctions', debouncedSearch, status, category, currency],

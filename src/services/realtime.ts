@@ -218,6 +218,21 @@ export async function disconnectRealtime() {
   realtimeLog('conexion cerrada manualmente');
 }
 
+export type AuctionListEvent = {
+  type: 'AUCTION_CREATED' | 'AUCTION_UPDATED' | 'AUCTION_STATE_CHANGED';
+  subastaId: number;
+};
+
+export function subscribeToAuctionList(callback: Callback<AuctionListEvent>) {
+  return subscribeDestination('/topic/subastas', callback, (message) => {
+    const raw = parseJson<Record<string, unknown>>(message);
+    if (!raw) return undefined;
+    const type = stringFrom(raw.type) as AuctionListEvent['type'] | undefined;
+    if (!type) return undefined;
+    return { type, subastaId: Number(raw.subastaId ?? raw.subasta_id ?? 0) };
+  });
+}
+
 export function subscribeToAuction(subastaId: string, callback: Callback<AuctionRealtimeEvent>) {
   return subscribeDestination(`/topic/subastas/${subastaId}`, callback, (message) => {
     const raw = parseJson<Record<string, unknown>>(message);
