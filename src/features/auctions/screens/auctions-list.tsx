@@ -27,7 +27,8 @@ export function AuctionsScreen() {
   }, [search]);
 
   useEffect(() => {
-    return subscribeToAuctionList(() => {
+    return subscribeToAuctionList((event) => {
+      console.log('[auctions-list] evento recibido', event);
       queryClient.invalidateQueries({ queryKey: ['auctions'] });
     });
   }, [queryClient]);
