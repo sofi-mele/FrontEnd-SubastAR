@@ -6,14 +6,16 @@ import { StyleSheet, View } from 'react-native';
 import { AuctionCard } from '@/components/domain/cards';
 import { Chip, EmptyState, ErrorState, Header, IconButton, LoadingState, Screen, SearchInput, SectionHeader, SecurityNote } from '@/components/ui/primitives';
 import { spacing } from '@/constants/theme';
+import { useSession } from '@/providers/app-provider';
 import { auctionService } from '@/services/api';
 
 export function AuctionsScreen() {
   const router = useRouter();
+  const { isGuest } = useSession();
   const params = useLocalSearchParams<{ status?: string; category?: string; currency?: string }>();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [status, setStatus] = useState(['Finalizada', 'Cerrada'].includes(params.status ?? '') ? 'Todas' : (params.status ?? 'Todas'));
+  const [status, setStatus] = useState(['Finalizada', 'Cerrada', 'En vivo'].includes(params.status ?? '') ? 'Todas' : (params.status ?? 'Todas'));
   const category = params.category ?? 'Todas';
   const currency = params.currency ?? 'Todas';
   useEffect(() => {
@@ -25,9 +27,9 @@ export function AuctionsScreen() {
     queryKey: ['auctions', debouncedSearch, status, category, currency],
     queryFn: () => auctionService.list({ search: debouncedSearch, status, category, currency }),
   });
-  const statusChips = ['Todas', 'En vivo', 'Próximas'];
+  const statusChips = isGuest ? ['Todas', 'Próximas'] : ['Todas', 'En vivo', 'Próximas'];
   const visibleAuctions = data
-    ?.filter((a) => a.status !== 'Finalizada')
+    ?.filter((a) => a.status !== 'Finalizada' && !(isGuest && a.status === 'En vivo'))
     .sort((a, b) => {
       if (a.status === 'En vivo' && b.status !== 'En vivo') return -1;
       if (a.status !== 'En vivo' && b.status === 'En vivo') return 1;
