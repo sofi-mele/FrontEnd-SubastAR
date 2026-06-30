@@ -1,19 +1,30 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Badge, Body, Button, Card, Divider, ErrorState, Header, InfoTile, LoadingState, Screen, Title } from '@/components/ui/primitives';
 import { colors, fonts, spacing } from '@/constants/theme';
 import { useSafeBack } from '@/hooks/use-safe-back';
 import { auctionService } from '@/services/api';
+import { subscribeToAuctionList } from '@/services/realtime';
 import { InfoRow } from '@/features/auctions/components/info-row';
 import { formatAuctionDate, useId } from '@/features/auctions/utils';
 
 export function AuctionDetailScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const back = useSafeBack();
   const id = useId();
   const { data: auction, isLoading, isError, refetch } = useQuery({ queryKey: ['auction', id], queryFn: () => auctionService.get(id), enabled: !!id });
+
+  useEffect(() => {
+    return subscribeToAuctionList((event) => {
+      if (String(event.subastaId) === id) {
+        queryClient.invalidateQueries({ queryKey: ['auction', id] });
+      }
+    });
+  }, [id, queryClient]);
   if (isLoading) return <Screen><LoadingState /></Screen>;
   if (isError || !auction) return <Screen><Header title="Datos subasta" onBack={back} /><ErrorState onRetry={() => refetch()} /></Screen>;
   return (
