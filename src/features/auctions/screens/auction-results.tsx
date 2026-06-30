@@ -174,7 +174,7 @@ function LotResultDetail({
     return (
       <>
         <StatusState icon="close-circle-outline" title="No ganaste este lote" message="La mejor oferta fue superior a la tuya o no resultaste ganador." tone="red" />
-        {result?.finalAmount != null ? <Card><Body muted>Monto final</Body><Text style={styles.amount}>{formatCurrency(result.finalAmount)}</Text></Card> : null}
+        {result?.finalAmount != null ? <Card><Body muted>Monto final</Body><Text style={styles.amount}>{formatCurrency(result.finalAmount, result.currency)}</Text></Card> : null}
       </>
     );
   }
@@ -182,7 +182,7 @@ function LotResultDetail({
     <>
       <StatusState icon="trophy-outline" title="Ganaste este lote" message="La compra y su entrega están disponibles en Mis compras." tone="green" />
       <Card style={styles.resultCard}>
-        <ResultRow label="Monto final" value={result?.finalAmount != null ? formatCurrency(result.finalAmount) : 'A confirmar'} />
+        <ResultRow label="Monto final" value={result?.finalAmount != null ? formatCurrency(result.finalAmount, result.currency) : 'A confirmar'} />
         {result?.paymentMethod ? <ResultRow label="Medio de pago" value={result.paymentMethod} /> : null}
         {result?.date ? <ResultRow label="Fecha" value={formatAuctionDate(result.date)} /> : null}
       </Card>

@@ -32,8 +32,8 @@ export function LostParticipationsScreen() {
               </View>
               <Badge label="Perdida" tone="red" />
             </View>
-            <SummaryRow label="Tu mejor puja" value={formatCurrency(item.miMejorPuja)} bold />
-            <SummaryRow label="Precio final" value={formatCurrency(item.precioFinalVenta)} />
+            <SummaryRow label="Tu mejor puja" value={formatCurrency(item.miMejorPuja, item.currency)} bold />
+            <SummaryRow label="Precio final" value={formatCurrency(item.precioFinalVenta, item.currency)} />
             {item.fechaPuja ? <SummaryRow label="Fecha" value={item.fechaPuja} /> : null}
           </Card>
         ))

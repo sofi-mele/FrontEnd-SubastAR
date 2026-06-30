@@ -52,6 +52,7 @@ type BackendResult = {
   monto_final?: number;
   medio_pago?: string;
   fecha?: string;
+  moneda?: string;
 };
 type BackendLive = {
   item_actual?: BackendLot; mejor_oferta?: number; puja_minima?: number; puja_maxima?: number;
@@ -113,6 +114,7 @@ type BackendPurchase = {
   comision?: number | null; multa?: number | null;
   estado_pago: string; estado_entrega: string; costo_envio?: number; total?: number; medio_pago?: string;
   direccion_entrega?: string; factura_url?: string; poliza_id?: string | null; numero_poliza?: string | null;
+  moneda?: string;
 };
 type BackendPenalty = {
   id?: number | null;
@@ -151,7 +153,7 @@ type BackendCollectionAccount = {
 type BackendParticipacionPerdida = {
   item_id: number; nombre_producto: string; descripcion: string; precio_base: number;
   mi_mejor_puja: number; precio_final_venta: number; nombre_ganador?: string;
-  fecha_puja: string; subasta_id: number;
+  fecha_puja: string; subasta_id: number; moneda?: string;
 };
 
 function mapCollectionAccount(account: BackendCollectionAccount): CollectionAccount {
@@ -238,6 +240,7 @@ function mapPurchase(purchase: BackendPurchase): Purchase {
     paymentMethod: purchase.medio_pago,
     deliveryAddress: purchase.direccion_entrega,
     invoiceUrl: purchase.factura_url,
+    currency: purchase.moneda,
   };
 }
 
@@ -447,7 +450,7 @@ export const auctionService = {
     return {
       status: value.estado, lotId: String(value.item_id), lotName: value.nombre_item,
       won: value.fue_ganador, finalAmount: value.monto_final,
-      paymentMethod: value.medio_pago, date: value.fecha,
+      paymentMethod: value.medio_pago, date: value.fecha, currency: value.moneda,
     };
   },
 };
@@ -755,6 +758,7 @@ export const lostParticipationService = {
       nombreGanador: item.nombre_ganador,
       fechaPuja: item.fecha_puja,
       subastaId: item.subasta_id,
+      currency: item.moneda,
     }));
   },
 };

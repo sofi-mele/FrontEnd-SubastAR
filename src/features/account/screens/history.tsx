@@ -38,7 +38,7 @@ export function ParticipationHistoryScreen() {
               </View>
               <Badge label="Perdida" tone="red" />
             </View>
-            <SummaryRow label="Mi mejor puja" value={formatCurrency(item.miMejorPuja)} bold />
+            <SummaryRow label="Mi mejor puja" value={formatCurrency(item.miMejorPuja, item.currency)} bold />
             {item.fechaPuja ? <SummaryRow label="Fecha" value={item.fechaPuja} /> : null}
           </Card>
         )) : <EmptyState title="No participaste en subastas no ganadas" message="Cuando participes en subastas sin ganar, verás el historial acá." />
@@ -52,7 +52,7 @@ export function ParticipationHistoryScreen() {
               </View>
               <Badge label="Ganada" tone="green" />
             </View>
-            <SummaryRow label="Monto final" value={formatCurrency(purchase.amount)} bold />
+            <SummaryRow label="Monto final" value={formatCurrency(purchase.amount, purchase.currency)} bold />
             {purchase.date ? <SummaryRow label="Fecha" value={purchase.date} /> : null}
             <Button label="Ver compra" variant="secondary" onPress={() => router.push(`/purchases/${purchase.id}`)} />
           </Card>

@@ -49,11 +49,11 @@ export function PurchaseDetailScreen() {
           <InfoTile icon="cube-outline" label="Entrega" value={data.deliveryStatus || 'Pendiente'} />
         </View>
         <Divider />
-        <SummaryRow label="Valor pujado" value={formatCurrency(data.amount)} />
-        {data.fee > 0 ? <SummaryRow label="Comisión" value={formatCurrency(data.fee)} /> : null}
-        {data.penalty > 0 ? <SummaryRow label="Multa" value={formatCurrency(data.penalty)} /> : null}
-        {data.shippingCost != null ? <SummaryRow label="Envío" value={formatCurrency(data.shippingCost)} /> : null}
-        <SummaryRow label="Total" value={formatCurrency(data.amount + data.fee + data.penalty + (data.shippingCost ?? 0))} bold />
+        <SummaryRow label="Valor pujado" value={formatCurrency(data.amount, data.currency)} />
+        {data.fee > 0 ? <SummaryRow label="Comisión" value={formatCurrency(data.fee, data.currency)} /> : null}
+        {data.penalty > 0 ? <SummaryRow label="Multa" value={formatCurrency(data.penalty, data.currency)} /> : null}
+        {data.shippingCost != null ? <SummaryRow label="Envío" value={formatCurrency(data.shippingCost, data.currency)} /> : null}
+        <SummaryRow label="Total" value={formatCurrency(data.amount + data.fee + data.penalty + (data.shippingCost ?? 0), data.currency)} bold />
       </Card>
       {needsDeliveryChoice ? (
         <Card style={styles.itemCard}>

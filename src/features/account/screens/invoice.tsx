@@ -42,7 +42,7 @@ export function InvoiceScreen() {
       </Card>
       <View style={styles.invoiceMetaGrid}>
         <InfoTile icon="cube-outline" label="Item" value={purchase.lot.title} />
-        <InfoTile icon="cash-outline" label="Total" value={formatCurrency(purchase.total ?? purchase.amount)} />
+        <InfoTile icon="cash-outline" label="Total" value={formatCurrency(purchase.total ?? purchase.amount, purchase.currency)} />
         <InfoTile icon="card-outline" label="Pago" value={purchase.paymentStatus} tone={purchase.paymentStatus.toLowerCase() === 'pagado' ? 'green' : 'yellow'} />
         <InfoTile icon="car-outline" label="Entrega" value={purchase.deliveryStatus} />
       </View>

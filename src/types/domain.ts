@@ -72,6 +72,7 @@ export interface AuctionResult {
   finalAmount?: number;
   paymentMethod?: string;
   date?: string;
+  currency?: string;
 }
 
 export interface PaymentMethod {
@@ -102,6 +103,7 @@ export interface Purchase {
   paymentMethod?: string;
   deliveryAddress?: string;
   invoiceUrl?: string;
+  currency?: string;
 }
 
 export interface OwnedAsset {
@@ -317,6 +319,7 @@ export interface ParticipacionPerdida {
   nombreGanador?: string;
   fechaPuja: string;
   subastaId: number;
+  currency?: string;
 }
 
 export interface InsurancePolicy {
